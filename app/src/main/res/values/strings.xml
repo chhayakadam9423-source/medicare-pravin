@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Medicare</string>
+    <string name="tagline">Healthcare at your fingertips</string>
+    <string name="welcome_heading">Welcome to Medicare</string>
+    <string name="welcome_subheading">Modern hospital management connecting patients, doctors, and specialists seamlessly.</string>
+    
+    <!-- Auth Strings -->
+    <string name="login">Login</string>
+    <string name="create_account">Create Account</string>
+    <string name="register">Register</string>
+    <string name="email">Email Address</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="full_name">Full Name</string>
+    <string name="phone">Phone Number</string>
+    <string name="select_role">Select Your Role</string>
+    <string name="role_patient">Patient</string>
+    <string name="role_doctor">Doctor</string>
+    <string name="role_admin">Hospital Admin</string>
+    <string name="logout">Log Out</string>
+    
+    <!-- Patient Dashboard -->
+    <string name="greeting_hello">Hello,</string>
+    <string name="search_doctors_hint">Search doctors, specialties...</string>
+    <string name="categories">Specialties</string>
+    <string name="upcoming_appointment">Upcoming Appointment</string>
+    <string name="recommended_doctors">Recommended Doctors</string>
+    <string name="see_all">See All</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="book_appointment">Book Appointment</string>
+    <string name="my_appointments">My Appointments</string>
+    <string name="prescriptions">Prescriptions</string>
+    <string name="doctor_profile">Doctor Profile</string>
+    
+    <!-- Bottom Nav -->
+    <string name="nav_home">Home</string>
+    <string name="nav_doctors">Doctors</string>
+    <string name="nav_appointments">Appointments</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Appointment Flow -->
+    <string name="select_date">Select Date</string>
+    <string name="select_time">Select Time</string>
+    <string name="reason_consultation">Reason for Consultation</string>
+    <string name="confirm_booking">Confirm Booking</string>
+    <string name="booking_success">Appointment Booked Successfully!</string>
+    <string name="prescription_saved">Prescription Saved Successfully!</string>
+    <string name="appointment_confirmed">Appointment Confirmed</string>
+    <string name="cancel_appointment">Cancel Appointment</string>
+
+    <!-- Doctor Module -->
+    <string name="doctor_dashboard">Doctor Dashboard</string>
+    <string name="todays_appointments">Today\'s Appointments</string>
+    <string name="pending_requests">Pending Requests</string>
+    <string name="completed">Completed</string>
+    <string name="accept">Accept</string>
+    <string name="reject">Reject</string>
+    <string name="add_prescription">Add Prescription</string>
+    <string name="medicine_name">Medicine Name</string>
+    <string name="dosage">Dosage (e.g. 500mg, 1 tablet)</string>
+    <string name="frequency">Frequency (e.g. 2x Daily after meals)</string>
+    <string name="special_instructions">Instructions / Notes</string>
+
+    <!-- Admin Module -->
+    <string name="admin_dashboard">Admin Console</string>
+    <string name="total_doctors">Total Doctors</string>
+    <string name="total_patients">Total Patients</string>
+    <string name="total_appointments">Total Appointments</string>
+    <string name="manage_doctors">Manage Doctors</string>
+    <string name="manage_patients">Manage Patients</string>
+    <string name="manage_appointments">Manage Appointments</string>
+    <string name="add_new_doctor">Add New Doctor</string>
+    <string name="edit_doctor">Edit Doctor</string>
+    <string name="delete">Delete</string>
+
+    <!-- Statuses -->
+    <string name="status_pending_label">PENDING</string>
+    <string name="status_confirmed_label">CONFIRMED</string>
+    <string name="status_rejected_label">REJECTED</string>
+    <string name="status_completed_label">COMPLETED</string>
+    <string name="status_cancelled_label">CANCELLED</string>
+
+    <!-- Empty States -->
+    <string name="empty_appointments">No appointments yet</string>
+    <string name="empty_doctors">No doctors found</string>
+    <string name="empty_prescriptions">No prescription available</string>
+</resources>

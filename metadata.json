@@ -1,0 +1,6 @@
+{
+  "name": "Medicare - Hospital Management System",
+  "description": "Complete Android Hospital Management System with Supabase backend featuring Patient, Doctor, and Admin portals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Medicare Healthcare Color Palette -->
+    <color name="primary">#1976D2</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="primary_light">#E3F2FD</color>
+    <color name="secondary">#26A69A</color>
+    <color name="secondary_dark">#00897B</color>
+    <color name="secondary_light">#E0F2F1</color>
+    
+    <color name="background">#F7FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#EEF2F6</color>
+    <color name="card_border">#E2E8F0</color>
+
+    <color name="text_primary">#263238</color>
+    <color name="text_secondary">#607D8B</color>
+    <color name="text_tertiary">#90A4AE</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- Status Colors -->
+    <color name="status_pending">#F59E0B</color>
+    <color name="status_pending_bg">#FEF3C7</color>
+    <color name="status_confirmed">#10B981</color>
+    <color name="status_confirmed_bg">#D1FAE5</color>
+    <color name="status_rejected">#EF4444</color>
+    <color name="status_rejected_bg">#FEE2E2</color>
+    <color name="status_completed">#3B82F6</color>
+    <color name="status_completed_bg">#DBEAFE</color>
+    <color name="status_cancelled">#6B7280</color>
+    <color name="status_cancelled_bg">#F3F4F6</color>
+
+    <!-- Functional -->
+    <color name="success">#2E7D32</color>
+    <color name="error">#D32F2F</color>
+    <color name="divider">#ECEFF1</color>
+    <color name="ripple_color">#1F1976D2</color>
+</resources>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardDoctorAptItem"
+    style="@style/Widget.Medicare.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Patient Header & Status Chip -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_circle_success"
+                android:backgroundTint="@color/secondary_light">
+
+                <TextView
+                    android:id="@+id/tvDocPatientInitial"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="P"
+                    android:textColor="@color/secondary_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDocAptPatientName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Alex Johnson"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvDocAptPatientDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Male • Blood: O+ • Age: 29"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDocAptStatusChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_status_chip"
+                android:backgroundTint="@color/status_pending_bg"
+                android:paddingStart="10dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="4dp"
+                android:text="PENDING"
+                android:textColor="@color/status_pending"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/divider" />
+
+        <!-- Date & Time -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvDocAptDateTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📅 2026-09-22 • ⏰ 10:30 AM"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Reason -->
+        <TextView
+            android:id="@+id/tvDocAptReason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Consultation Reason: Routine cardiac wellness checkup and blood pressure monitoring"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <!-- Action Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <!-- Reject Button (Pending only) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDocRejectApt"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="Reject"
+                android:textColor="@color/error"
+                android:textSize="12sp"
+                app:cornerRadius="8dp"
+                app:strokeColor="@color/error" />
+
+            <!-- Accept Button (Pending only) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDocAcceptApt"
+                style="@style/Widget.Medicare.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="Accept"
+                android:textSize="12sp"
+                app:backgroundTint="@color/status_confirmed"
+                app:cornerRadius="8dp" />
+
+            <!-- Complete Button (Confirmed only) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDocCompleteApt"
+                style="@style/Widget.Medicare.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="Complete Visit"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="8dp" />
+
+            <!-- Add Prescription Button (Completed only) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDocAddPrescription"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="+ Prescription"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:cornerRadius="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
