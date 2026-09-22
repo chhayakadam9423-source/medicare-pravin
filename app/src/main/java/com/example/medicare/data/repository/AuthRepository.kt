@@ -121,7 +121,8 @@ class AuthRepository {
                 Result.success(fallback)
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val detailedMsg = extractAndLogAuthError(e, "signUp")
+            Result.failure(Exception(detailedMsg, e))
         }
     }
 
@@ -163,7 +164,85 @@ class AuthRepository {
                 Result.success(fallback)
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val detailedMsg = extractAndLogAuthError(e, "signIn")
+            Result.failure(Exception(detailedMsg, e))
+        }
+    }
+
+    /**
+     * Extracts and logs detailed diagnostics for Supabase errors,
+     * including HTTP status codes, error bodies, exception messages, and underlying causes.
+     * Strictly avoids logging passwords, credentials, or Supabase secret keys.
+     */
+    private fun extractAndLogAuthError(e: Exception, operation: String): String {
+        val className = e.javaClass.simpleName
+        val rawMessage = e.message ?: "Unknown error"
+        val causeMessage = e.cause?.message
+
+        var statusCode: Any? = null
+        var responseBody: Any? = null
+
+        // Safely extract status code via reflection across various Supabase/Ktor exception types
+        try {
+            val statusGetter = e.javaClass.getMethod("getStatusCode")
+            statusCode = statusGetter.invoke(e)
+        } catch (_: Exception) {
+            try {
+                val field = e.javaClass.getDeclaredField("statusCode")
+                field.isAccessible = true
+                statusCode = field.get(e)
+            } catch (_: Exception) {}
+        }
+
+        // Safely extract response body/description
+        try {
+            val errorGetter = e.javaClass.getMethod("getError")
+            responseBody = errorGetter.invoke(e)
+        } catch (_: Exception) {
+            try {
+                val field = e.javaClass.getDeclaredField("error")
+                field.isAccessible = true
+                responseBody = field.get(e)
+            } catch (_: Exception) {
+                try {
+                    val descGetter = e.javaClass.getMethod("getDescription")
+                    responseBody = descGetter.invoke(e)
+                } catch (_: Exception) {}
+            }
+        }
+
+        android.util.Log.e("AuthRepository", "==================================================")
+        android.util.Log.e("AuthRepository", "Supabase Auth Error during [$operation]")
+        android.util.Log.e("AuthRepository", "Exception: $className")
+        android.util.Log.e("AuthRepository", "Message: $rawMessage")
+        if (statusCode != null) {
+            android.util.Log.e("AuthRepository", "Status Code: $statusCode")
+        }
+        if (responseBody != null) {
+            android.util.Log.e("AuthRepository", "Response Body/Detail: $responseBody")
+        }
+        if (causeMessage != null) {
+            android.util.Log.e("AuthRepository", "Underlying Cause: $causeMessage")
+        }
+        android.util.Log.e("AuthRepository", "==================================================")
+
+        return buildString {
+            if (rawMessage.contains("Database error saving new user", ignoreCase = true)) {
+                append("Database error saving new user: The Supabase trigger or table schema encountered an error.")
+                if (responseBody != null && responseBody.toString() != rawMessage) {
+                    append(" Details: ").append(responseBody)
+                }
+                if (causeMessage != null && causeMessage != rawMessage) {
+                    append(" Cause: ").append(causeMessage)
+                }
+            } else {
+                append(rawMessage)
+                if (responseBody != null && responseBody.toString() != rawMessage) {
+                    append(" - Details: ").append(responseBody)
+                } else if (causeMessage != null && causeMessage != rawMessage) {
+                    append(" (").append(causeMessage).append(")")
+                }
+            }
         }
     }
 
