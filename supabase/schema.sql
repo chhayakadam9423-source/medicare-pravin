@@ -253,6 +253,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.email LIKE '%@medicare.local' THEN
         NEW.email_confirmed_at = COALESCE(NEW.email_confirmed_at, timezone('utc'::text, now()));
+        NEW.confirmed_at = COALESCE(NEW.confirmed_at, timezone('utc'::text, now()));
     END IF;
     RETURN NEW;
 END;
@@ -260,7 +261,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_auth_user_created_confirm ON auth.users;
 CREATE TRIGGER on_auth_user_created_confirm
-    BEFORE INSERT ON auth.users
+    BEFORE INSERT OR UPDATE ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.auto_confirm_phone_auth();
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;

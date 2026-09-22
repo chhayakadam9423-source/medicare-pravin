@@ -10,8 +10,47 @@ import {
 } from './initialData';
 import { 
   AndroidScreen, UserProfile, DoctorItem, 
-  PatientItem, AppointmentItem, PrescriptionItem 
+  PatientItem, AppointmentItem, PrescriptionItem, UserRole 
 } from './types';
+
+export interface RegisteredAccount {
+  id: string;
+  name: string;
+  phone: string;
+  normalizedPhone: string;
+  syntheticEmail: string;
+  passwordHashOrPlain: string;
+  role: UserRole;
+  profile: UserProfile;
+}
+
+export const normalizePhoneUtil = (raw: string): string => {
+  if (!raw) return '';
+  let s = raw.trim().toLowerCase();
+  if (s.startsWith('+91')) {
+    s = s.substring(3);
+  } else if (s.startsWith('+1')) {
+    s = s.substring(2);
+  } else if (s.startsWith('+')) {
+    s = s.substring(1);
+  }
+  let digits = s.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) {
+    digits = digits.substring(2);
+  }
+  if (digits.length > 10 && digits.startsWith('0')) {
+    digits = digits.substring(1);
+  }
+  if (digits.length === 11 && digits.startsWith('1')) {
+    digits = digits.substring(1);
+  }
+  return digits;
+};
+
+export const phoneToAuthEmailUtil = (phone: string): string => {
+  const clean = normalizePhoneUtil(phone);
+  return `${clean}@medicare.local`;
+};
 
 export default function App() {
   // Database state (mimicking Supabase PostgreSQL tables in real-time)
@@ -20,6 +59,52 @@ export default function App() {
   const [patients, setPatients] = useState<PatientItem[]>(initialPatients);
   const [appointments, setAppointments] = useState<AppointmentItem[]>(initialAppointments);
   const [prescriptions, setPrescriptions] = useState<PrescriptionItem[]>(initialPrescriptions);
+
+  // Registered accounts for Mobile + Password verification
+  const [userAccounts, setUserAccounts] = useState<RegisteredAccount[]>([
+    {
+      id: initialProfiles[0].id,
+      name: initialProfiles[0].name,
+      phone: initialProfiles[0].phone || '+1-555-0201',
+      normalizedPhone: normalizePhoneUtil(initialProfiles[0].phone || '+1-555-0201'),
+      syntheticEmail: phoneToAuthEmailUtil(initialProfiles[0].phone || '+1-555-0201'),
+      passwordHashOrPlain: 'Password123!',
+      role: 'patient',
+      profile: initialProfiles[0]
+    },
+    {
+      id: initialProfiles[1].id,
+      name: initialProfiles[1].name,
+      phone: initialProfiles[1].phone || '+1-555-0101',
+      normalizedPhone: normalizePhoneUtil(initialProfiles[1].phone || '+1-555-0101'),
+      syntheticEmail: phoneToAuthEmailUtil(initialProfiles[1].phone || '+1-555-0101'),
+      passwordHashOrPlain: 'Password123!',
+      role: 'doctor',
+      profile: initialProfiles[1]
+    },
+    {
+      id: initialProfiles[5].id,
+      name: initialProfiles[5].name,
+      phone: initialProfiles[5].phone || '+1-555-0999',
+      normalizedPhone: normalizePhoneUtil(initialProfiles[5].phone || '+1-555-0999'),
+      syntheticEmail: phoneToAuthEmailUtil(initialProfiles[5].phone || '+1-555-0999'),
+      passwordHashOrPlain: 'Password123!',
+      role: 'admin',
+      profile: initialProfiles[5]
+    }
+  ]);
+
+  // Auth form states
+  const [loginPhone, setLoginPhone] = useState('+1-555-0201');
+  const [loginPassword, setLoginPassword] = useState('Password123!');
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const [regName, setRegName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regRole, setRegRole] = useState<UserRole>('patient');
+  const [regPassword, setRegPassword] = useState('Password123!');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('Password123!');
+  const [regError, setRegError] = useState<string | null>(null);
 
   // Active Session & Screen
   const [currentUser, setCurrentUser] = useState<UserProfile>(initialProfiles[0]);
@@ -65,15 +150,168 @@ export default function App() {
   const switchUser = (role: 'patient' | 'doctor' | 'admin') => {
     if (role === 'patient') {
       setCurrentUser(profiles[0]);
+      setLoginPhone(profiles[0].phone || '+1-555-0201');
+      setLoginPassword('Password123!');
       setCurrentScreen('patient_dashboard');
     } else if (role === 'doctor') {
       setCurrentUser(profiles[1]);
+      setLoginPhone(profiles[1].phone || '+1-555-0101');
+      setLoginPassword('Password123!');
       setCurrentScreen('doctor_dashboard');
     } else {
       setCurrentUser(profiles[5]);
+      setLoginPhone(profiles[5].phone || '+1-555-0999');
+      setLoginPassword('Password123!');
       setCurrentScreen('admin_dashboard');
     }
     showToast(`Switched active session to ${role.toUpperCase()}`);
+  };
+
+  // Auth Handlers (Mobile + Password)
+  const handleLogin = () => {
+    setLoginError(null);
+    const cleanPhone = normalizePhoneUtil(loginPhone);
+    if (!cleanPhone) {
+      setLoginError('Please enter your mobile number.');
+      return;
+    }
+    if (!loginPassword) {
+      setLoginError('Please enter your password.');
+      return;
+    }
+
+    // Lookup user account by normalized mobile number
+    const account = userAccounts.find(a => a.normalizedPhone === cleanPhone);
+    if (!account) {
+      setLoginError('No account registered with this mobile number. Please check the number or create an account.');
+      return;
+    }
+
+    // Verify password
+    if (account.passwordHashOrPlain !== loginPassword) {
+      setLoginError('Invalid password / invalid credentials. Please verify your password.');
+      return;
+    }
+
+    // Login succeeds!
+    setCurrentUser(account.profile);
+    showToast(`Welcome back, ${account.name}!`);
+
+    // Navigate to role dashboard
+    if (account.role === 'patient') {
+      setCurrentScreen('patient_dashboard');
+    } else if (account.role === 'doctor') {
+      setCurrentScreen('doctor_dashboard');
+    } else {
+      setCurrentScreen('admin_dashboard');
+    }
+  };
+
+  const handleRegister = () => {
+    setRegError(null);
+    if (!regName.trim()) {
+      setRegError('Please enter your full name.');
+      return;
+    }
+    const cleanPhone = normalizePhoneUtil(regPhone);
+    if (!cleanPhone || cleanPhone.length < 7) {
+      setRegError('Please enter a valid mobile number (min 7 digits).');
+      return;
+    }
+    if (!regPassword) {
+      setRegError('Please enter a password (min 6 characters).');
+      return;
+    }
+    if (regPassword.length < 6) {
+      setRegError('Password must be at least 6 characters.');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setRegError('Passwords do not match.');
+      return;
+    }
+
+    // Check if phone number already registered
+    const existing = userAccounts.find(a => a.normalizedPhone === cleanPhone);
+    if (existing) {
+      setRegError(`Mobile number already registered as ${existing.name}. Please sign in.`);
+      return;
+    }
+
+    const syntheticEmail = phoneToAuthEmailUtil(cleanPhone);
+    const newUid = `user-${Date.now()}`;
+    const newProfile: UserProfile = {
+      id: newUid,
+      name: regName.trim(),
+      phone: cleanPhone,
+      email: syntheticEmail,
+      role: regRole
+    };
+
+    const newAccount: RegisteredAccount = {
+      id: newUid,
+      name: regName.trim(),
+      phone: regPhone.trim(),
+      normalizedPhone: cleanPhone,
+      syntheticEmail,
+      passwordHashOrPlain: regPassword,
+      role: regRole,
+      profile: newProfile
+    };
+
+    setUserAccounts(prev => [...prev, newAccount]);
+    setProfiles(prev => [newProfile, ...prev]);
+
+    if (regRole === 'patient') {
+      const newPatient: PatientItem = {
+        id: `pat-${Date.now()}`,
+        user_id: newUid,
+        profile: newProfile,
+        blood_group: 'O+',
+        gender: 'Not specified'
+      };
+      setPatients(prev => [newPatient, ...prev]);
+    } else if (regRole === 'doctor') {
+      const newDoctor: DoctorItem = {
+        id: `doc-${Date.now()}`,
+        user_id: newUid,
+        specialization: 'General Practitioner',
+        qualification: 'MBBS, MD',
+        experience: '5+ Years',
+        about: 'Registered Medicare Healthcare Provider',
+        available: true,
+        rating: 5.0,
+        profile: newProfile
+      };
+      setDoctors(prev => [newDoctor, ...prev]);
+    }
+
+    // Set active session
+    setCurrentUser(newProfile);
+    setLoginPhone(regPhone.trim());
+    setLoginPassword(regPassword);
+    showToast(`Account registered successfully! Welcome, ${newProfile.name}`);
+
+    // Clear register form
+    setRegName('');
+    setRegPhone('');
+    setRegPassword('Password123!');
+    setRegConfirmPassword('Password123!');
+
+    if (regRole === 'patient') {
+      setCurrentScreen('patient_dashboard');
+    } else if (regRole === 'doctor') {
+      setCurrentScreen('doctor_dashboard');
+    } else {
+      setCurrentScreen('admin_dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    showToast('Logged out successfully');
+    setLoginError(null);
+    setRegError(null);
+    setCurrentScreen('login');
   };
 
   // Actions
@@ -378,26 +616,37 @@ export default function App() {
                 {currentScreen === 'login' && (
                   <div className="flex-1 flex flex-col justify-between p-6 bg-white">
                     <div>
-                      <button onClick={() => setCurrentScreen('welcome')} className="p-2 -ml-2 text-slate-500">
+                      <button onClick={() => setCurrentScreen('welcome')} className="p-2 -ml-2 text-slate-500 hover:text-slate-800 transition">
                         <ArrowLeft className="w-5 h-5" />
                       </button>
                       <h2 className="text-2xl font-bold text-slate-900 mt-3">Welcome Back</h2>
-                      <p className="text-slate-500 text-xs mt-1">Sign in with your Medicare credentials</p>
+                      <p className="text-slate-500 text-xs mt-1">Sign in with your Mobile Number & Password</p>
 
-                      <div className="mt-6 space-y-4">
+                      {loginError && (
+                        <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 animate-fadeIn">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                          <span>{loginError}</span>
+                        </div>
+                      )}
+
+                      <div className="mt-5 space-y-4">
                         <div>
-                          <label className="text-xs font-semibold text-slate-700 block mb-1">Email Address</label>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Mobile Number</label>
                           <input 
-                            type="email" 
-                            defaultValue={currentUser.email}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
+                            type="tel" 
+                            value={loginPhone}
+                            onChange={(e) => setLoginPhone(e.target.value)}
+                            placeholder="e.g. 9876543210 or +91 9876543210"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50 font-medium"
                           />
                         </div>
                         <div>
                           <label className="text-xs font-semibold text-slate-700 block mb-1">Password</label>
                           <input 
                             type="password" 
-                            defaultValue="Password123!" 
+                            value={loginPassword}
+                            onChange={(e) => setLoginPassword(e.target.value)}
+                            placeholder="Enter your password"
                             className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
                           />
                         </div>
@@ -405,23 +654,35 @@ export default function App() {
 
                       {/* Demo Quick Logins */}
                       <div className="mt-6 p-3 rounded-xl bg-cyan-50 border border-cyan-100">
-                        <p className="text-[11px] font-bold text-cyan-800 uppercase tracking-wider mb-2">Quick 1-Click Demo Login:</p>
+                        <p className="text-[11px] font-bold text-cyan-800 uppercase tracking-wider mb-2">Quick 1-Click Demo Fill:</p>
                         <div className="flex gap-1.5 flex-wrap">
                           <button
-                            onClick={() => { switchUser('patient'); setCurrentScreen('patient_dashboard'); }}
-                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white"
+                            onClick={() => { 
+                              setLoginPhone('+1-555-0201'); 
+                              setLoginPassword('Password123!');
+                              setLoginError(null);
+                            }}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition"
                           >
                             Patient
                           </button>
                           <button
-                            onClick={() => { switchUser('doctor'); setCurrentScreen('doctor_dashboard'); }}
-                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-cyan-600 text-white"
+                            onClick={() => { 
+                              setLoginPhone('+1-555-0101'); 
+                              setLoginPassword('Password123!');
+                              setLoginError(null);
+                            }}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-cyan-600 text-white hover:bg-cyan-700 transition"
                           >
                             Doctor
                           </button>
                           <button
-                            onClick={() => { switchUser('admin'); setCurrentScreen('admin_dashboard'); }}
-                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-600 text-white"
+                            onClick={() => { 
+                              setLoginPhone('+1-555-0999'); 
+                              setLoginPassword('Password123!');
+                              setLoginError(null);
+                            }}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
                           >
                             Admin
                           </button>
@@ -429,20 +690,16 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="space-y-3 pb-2">
+                    <div className="space-y-3 pb-2 pt-4">
                       <button
-                        onClick={() => {
-                          if (currentUser.role === 'patient') setCurrentScreen('patient_dashboard');
-                          else if (currentUser.role === 'doctor') setCurrentScreen('doctor_dashboard');
-                          else setCurrentScreen('admin_dashboard');
-                        }}
-                        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-md transition"
+                        onClick={handleLogin}
+                        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-md transition active:scale-[0.98]"
                       >
                         SIGN IN
                       </button>
                       <p className="text-center text-xs text-slate-500">
                         Don't have an account?{' '}
-                        <button onClick={() => setCurrentScreen('register')} className="text-cyan-600 font-bold">
+                        <button onClick={() => { setRegError(null); setCurrentScreen('register'); }} className="text-cyan-600 font-bold hover:underline">
                           Register
                         </button>
                       </p>
@@ -454,39 +711,83 @@ export default function App() {
                 {currentScreen === 'register' && (
                   <div className="flex-1 flex flex-col justify-between p-6 bg-white overflow-y-auto">
                     <div>
-                      <button onClick={() => setCurrentScreen('welcome')} className="p-2 -ml-2 text-slate-500">
+                      <button onClick={() => setCurrentScreen('welcome')} className="p-2 -ml-2 text-slate-500 hover:text-slate-800 transition">
                         <ArrowLeft className="w-5 h-5" />
                       </button>
                       <h2 className="text-2xl font-bold text-slate-900 mt-2">Create Account</h2>
-                      <p className="text-slate-500 text-xs mt-1">Join the Medicare Healthcare Network</p>
+                      <p className="text-slate-500 text-xs mt-1">Register using Mobile Number & Password</p>
+
+                      {regError && (
+                        <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 animate-fadeIn">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                          <span>{regError}</span>
+                        </div>
+                      )}
 
                       <div className="mt-4 space-y-3">
                         <div>
                           <label className="text-xs font-semibold text-slate-700 block mb-1">Full Name</label>
                           <input 
-                            placeholder="e.g. John Doe"
+                            value={regName}
+                            onChange={(e) => setRegName(e.target.value)}
+                            placeholder="e.g. Rahul Sharma"
                             className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-slate-700 block mb-1">Email</label>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Mobile Number</label>
                           <input 
-                            placeholder="john@example.com"
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
+                            type="tel"
+                            value={regPhone}
+                            onChange={(e) => setRegPhone(e.target.value)}
+                            placeholder="e.g. 9876543210 or +91 9876543210"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50 font-medium"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-slate-700 block mb-1">Phone</label>
-                          <input 
-                            placeholder="+1-555-0100"
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
-                          />
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Account Role</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRegRole('patient')}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                                regRole === 'patient'
+                                  ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
+                                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              🏥 Patient
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRegRole('doctor')}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                                regRole === 'doctor'
+                                  ? 'bg-cyan-50 border-cyan-500 text-cyan-700 ring-2 ring-cyan-500/20'
+                                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              🩺 Doctor
+                            </button>
+                          </div>
                         </div>
                         <div>
                           <label className="text-xs font-semibold text-slate-700 block mb-1">Password</label>
                           <input 
                             type="password"
-                            defaultValue="Password123!"
+                            value={regPassword}
+                            onChange={(e) => setRegPassword(e.target.value)}
+                            placeholder="At least 6 characters"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Confirm Password</label>
+                          <input 
+                            type="password"
+                            value={regConfirmPassword}
+                            onChange={(e) => setRegConfirmPassword(e.target.value)}
+                            placeholder="Re-enter password"
                             className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-cyan-600 bg-slate-50"
                           />
                         </div>
@@ -495,17 +796,14 @@ export default function App() {
 
                     <div className="mt-6 space-y-3 pb-2">
                       <button
-                        onClick={() => {
-                          showToast('Registration successful! Directing to Dashboard.');
-                          setCurrentScreen('patient_dashboard');
-                        }}
-                        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-md transition"
+                        onClick={handleRegister}
+                        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-md transition active:scale-[0.98]"
                       >
                         CREATE ACCOUNT
                       </button>
                       <p className="text-center text-xs text-slate-500">
                         Already have an account?{' '}
-                        <button onClick={() => setCurrentScreen('login')} className="text-cyan-600 font-bold">
+                        <button onClick={() => { setLoginError(null); setCurrentScreen('login'); }} className="text-cyan-600 font-bold hover:underline">
                           Sign In
                         </button>
                       </p>
@@ -1123,10 +1421,7 @@ export default function App() {
                     </div>
 
                     <button
-                      onClick={() => {
-                        showToast('Logged out');
-                        setCurrentScreen('welcome');
-                      }}
+                      onClick={handleLogout}
                       className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-3.5 rounded-xl border border-rose-200 transition"
                     >
                       LOG OUT
@@ -1359,10 +1654,7 @@ export default function App() {
                     </div>
 
                     <button
-                      onClick={() => {
-                        showToast('Signed out of doctor portal');
-                        setCurrentScreen('welcome');
-                      }}
+                      onClick={handleLogout}
                       className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-3.5 rounded-xl border border-rose-200 transition"
                     >
                       LOG OUT
@@ -1434,10 +1726,7 @@ export default function App() {
                     </div>
 
                     <button
-                      onClick={() => {
-                        showToast('Exited Admin session');
-                        setCurrentScreen('welcome');
-                      }}
+                      onClick={handleLogout}
                       className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-3.5 rounded-xl border border-rose-200 transition"
                     >
                       LOG OUT
@@ -1799,6 +2088,7 @@ export default function App() {
 
               <div className="flex gap-1.5 flex-wrap">
                 {[
+                  'AuthRepository.kt',
                   'schema.sql',
                   'local.properties',
                   'build.gradle.kts',
@@ -1823,6 +2113,103 @@ export default function App() {
 
             {/* Code Snippets Display */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 overflow-x-auto max-h-[500px]">
+              {codeFile === 'AuthRepository.kt' && (
+                <pre>{`package com.example.medicare.data.repository
+
+import com.example.medicare.data.model.UserProfile
+import com.example.medicare.data.model.UserRole
+import com.example.medicare.data.supabase.SupabaseManager
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+class AuthRepository {
+
+    private val auth = SupabaseManager.client.auth
+    private val postgrest = SupabaseManager.client.from("profiles")
+
+    /**
+     * Normalizes a mobile number so that registration and login generate
+     * the EXACT same synthetic email identity.
+     * Handles +91, +1, leading zeros, dashes, and extra spaces.
+     */
+    fun normalizePhone(phone: String): String {
+        var s = phone.trim().lowercase()
+        when {
+            s.startsWith("+91") -> s = s.substring(3)
+            s.startsWith("+1") -> s = s.substring(2)
+            s.startsWith("+") -> s = s.substring(1)
+        }
+        var digits = s.filter { it.isDigit() }
+        if (digits.length == 12 && digits.startsWith("91")) {
+            digits = digits.substring(2)
+        }
+        if (digits.length > 10 && digits.startsWith("0")) {
+            digits = digits.substring(1)
+        }
+        if (digits.length == 11 && digits.startsWith("1")) {
+            digits = digits.substring(1)
+        }
+        return digits
+    }
+
+    fun phoneToAuthEmail(phone: String): String {
+        val clean = normalizePhone(phone)
+        return "\$clean@medicare.local"
+    }
+
+    suspend fun signUp(name: String, phone: String, password: String, role: UserRole): Result<UserProfile> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Clear any prior active session before registering
+                try { auth.signOut() } catch (_: Exception) {}
+                
+                val cleanPhone = normalizePhone(phone)
+                val syntheticEmail = phoneToAuthEmail(cleanPhone)
+
+                auth.signUpWith(Email) {
+                    this.email = syntheticEmail
+                    this.password = password
+                    data = buildJsonObject {
+                        put("name", name.trim())
+                        put("phone", cleanPhone)
+                        put("role", role.name.lowercase())
+                    }
+                }
+                val userId = auth.currentUserOrNull()?.id ?: throw IllegalStateException("Signup failed")
+                val profile = postgrest.select { filter { eq("id", userId) } }.decodeSingle<UserProfile>()
+                Result.success(profile)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun signIn(phone: String, password: String): Result<UserProfile> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Clear any prior stale session before authenticating
+                try { auth.signOut() } catch (_: Exception) {}
+
+                val cleanPhone = normalizePhone(phone)
+                val syntheticEmail = phoneToAuthEmail(cleanPhone)
+
+                auth.signInWith(Email) {
+                    this.email = syntheticEmail
+                    this.password = password
+                }
+                val userId = auth.currentUserOrNull()?.id ?: throw IllegalStateException("Invalid credentials")
+                val profile = postgrest.select { filter { eq("id", userId) } }.decodeSingle<UserProfile>()
+                Result.success(profile)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+}`}</pre>
+              )}
               {codeFile === 'schema.sql' && (
                 <pre>{`-- Supabase PostgreSQL Hospital Management Schema
 CREATE TABLE profiles (

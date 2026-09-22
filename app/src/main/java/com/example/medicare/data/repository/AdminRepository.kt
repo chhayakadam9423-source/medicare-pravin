@@ -60,13 +60,14 @@ class AdminRepository {
         imageUrl: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            val cleanPhone = AuthRepository().normalizePhone(phone)
             // In admin mode, create profile record and doctor record
             val profileId = java.util.UUID.randomUUID().toString()
             db.from("profiles").insert(
                 mapOf(
                     "id" to profileId,
                     "name" to name,
-                    "phone" to phone,
+                    "phone" to cleanPhone,
                     "role" to "doctor"
                 )
             )

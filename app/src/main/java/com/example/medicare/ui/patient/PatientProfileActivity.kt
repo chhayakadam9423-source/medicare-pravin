@@ -3,16 +3,20 @@ package com.example.medicare.ui.patient
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.example.medicare.data.repository.AuthRepository
 import com.example.medicare.databinding.ActivityPatientProfileBinding
 import com.example.medicare.ui.auth.LoginActivity
 import com.example.medicare.utils.AnimationUtils
 import com.example.medicare.utils.DialogUtils
 import com.example.medicare.utils.SessionManager
+import kotlinx.coroutines.launch
 
 class PatientProfileActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPatientProfileBinding
     private lateinit var sessionManager: SessionManager
+    private val authRepository = AuthRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,11 +47,14 @@ class PatientProfileActivity : AppCompatActivity() {
                 title = "Log Out",
                 message = "Are you sure you want to sign out from your Medicare account?"
             ) {
-                sessionManager.clearSession()
-                val intent = Intent(this, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                finish()
+                lifecycleScope.launch {
+                    authRepository.signOut()
+                    sessionManager.clearSession()
+                    val intent = Intent(this@PatientProfileActivity, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                }
             }
         }
     }

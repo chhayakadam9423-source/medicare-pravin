@@ -16,9 +16,40 @@ class AuthRepository {
 
     /**
      * Normalizes phone number to digits only for consistent mapping.
+     * Handles +91, +1, leading 0, spaces, hyphens, and whitespace consistently
+     * so registration and login always generate the exact same internal identity.
      */
-    fun normalizePhone(phone: String): String {
-        return phone.filter { it.isDigit() }
+    fun normalizePhone(raw: String): String {
+        if (raw.isBlank()) return ""
+        var s = raw.trim().lowercase()
+        
+        // Remove international '+' prefixes explicitly
+        if (s.startsWith("+91")) {
+            s = s.substring(3)
+        } else if (s.startsWith("+1")) {
+            s = s.substring(2)
+        } else if (s.startsWith("+")) {
+            s = s.substring(1)
+        }
+        
+        // Extract digits only (stripping hyphens, spaces, parens, etc.)
+        var digits = s.filter { it.isDigit() }
+        
+        // Handle cases where '+' was omitted:
+        // Indian country code (91) with 10-digit phone = 12 digits
+        if (digits.length == 12 && digits.startsWith("91")) {
+            digits = digits.substring(2)
+        }
+        // Leading zero (0) e.g. 09876543210
+        if (digits.length > 10 && digits.startsWith("0")) {
+            digits = digits.substring(1)
+        }
+        // US country code (1) with 10-digit phone = 11 digits
+        if (digits.length == 11 && digits.startsWith("1")) {
+            digits = digits.substring(1)
+        }
+        
+        return digits
     }
 
     /**
@@ -39,7 +70,11 @@ class AuthRepository {
         extraData: Map<String, String> = emptyMap()
     ): Result<Profile> = withContext(Dispatchers.IO) {
         try {
-            val syntheticEmail = phoneToAuthEmail(phone)
+            // Ensure any previous session is cleared
+            try { auth.signOut() } catch (_: Exception) {}
+
+            val cleanPhone = normalizePhone(phone)
+            val syntheticEmail = phoneToAuthEmail(cleanPhone)
 
             // Register user with Supabase Auth using synthetic mobile-number email
             auth.signUpWith(Email) {
@@ -47,7 +82,7 @@ class AuthRepository {
                 this.password = userPassword
                 data = buildJsonObject {
                     put("name", name)
-                    put("phone", phone)
+                    put("phone", cleanPhone)
                     put("role", role)
                     extraData.forEach { (k, v) -> put(k, v) }
                 }
@@ -82,7 +117,7 @@ class AuthRepository {
                 Result.success(profile)
             } else {
                 // Fallback profile if trigger has a slight execution latency
-                val fallback = Profile(id = uid, name = name, email = null, phone = phone, role = role)
+                val fallback = Profile(id = uid, name = name, email = null, phone = cleanPhone, role = role)
                 Result.success(fallback)
             }
         } catch (e: Exception) {
@@ -92,7 +127,11 @@ class AuthRepository {
 
     suspend fun signIn(phone: String, userPassword: String): Result<Profile> = withContext(Dispatchers.IO) {
         try {
-            val syntheticEmail = phoneToAuthEmail(phone)
+            // Ensure any previous session is cleared before new sign-in
+            try { auth.signOut() } catch (_: Exception) {}
+
+            val cleanPhone = normalizePhone(phone)
+            val syntheticEmail = phoneToAuthEmail(cleanPhone)
 
             auth.signInWith(Email) {
                 this.email = syntheticEmail
@@ -120,7 +159,7 @@ class AuthRepository {
                 val metadata = auth.currentUserOrNull()?.userMetadata
                 val name = metadata?.get("name")?.toString()?.trim('"') ?: "User"
                 val role = metadata?.get("role")?.toString()?.trim('"') ?: "patient"
-                val fallback = Profile(id = uid, name = name, email = null, phone = phone, role = role)
+                val fallback = Profile(id = uid, name = name, email = null, phone = cleanPhone, role = role)
                 Result.success(fallback)
             }
         } catch (e: Exception) {
