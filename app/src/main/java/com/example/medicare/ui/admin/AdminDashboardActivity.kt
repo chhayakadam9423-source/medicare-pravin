@@ -40,6 +40,10 @@ class AdminDashboardActivity : AppCompatActivity() {
             startActivity(Intent(this, AdminManagePatientsActivity::class.java))
         }
 
+        AnimationUtils.applyPressAnimation(binding.cardManageAppointments) {
+            startActivity(Intent(this, AdminManageAppointmentsActivity::class.java))
+        }
+
         AnimationUtils.applyPressAnimation(binding.btnAdminLogout) {
             DialogUtils.showConfirmation(
                 this,

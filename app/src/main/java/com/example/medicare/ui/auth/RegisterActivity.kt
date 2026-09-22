@@ -40,8 +40,12 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun setupUI() {
         val genders = arrayOf("Male", "Female", "Other")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, genders)
-        binding.actvGender.setAdapter(adapter)
+        val genderAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, genders)
+        binding.actvGender.setAdapter(genderAdapter)
+
+        val bloodGroups = arrayOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+        val bloodAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, bloodGroups)
+        binding.actvBloodGroup.setAdapter(bloodAdapter)
 
         binding.etRegisterDob.setOnClickListener {
             val calendar = Calendar.getInstance()
@@ -124,7 +128,9 @@ class RegisterActivity : AppCompatActivity() {
 
             if (selectedRole == "patient") {
                 val emergency = binding.etEmergencyContact.text?.toString()?.trim().orEmpty()
+                val bloodGroup = binding.actvBloodGroup.text?.toString()?.trim().orEmpty()
                 extraData["emergency_contact"] = emergency
+                extraData["blood_group"] = bloodGroup
             } else {
                 extraData["specialization"] = binding.etSpecialization.text?.toString()?.trim().orEmpty()
                 extraData["qualification"] = binding.etQualification.text?.toString()?.trim().orEmpty()
@@ -136,6 +142,7 @@ class RegisterActivity : AppCompatActivity() {
                 extraData["start_time"] = binding.etStartTime.text?.toString()?.trim().orEmpty()
                 extraData["end_time"] = binding.etEndTime.text?.toString()?.trim().orEmpty()
                 extraData["about"] = binding.etAbout.text?.toString()?.trim().orEmpty()
+                extraData["profile_image_url"] = binding.etProfileImageUrl.text?.toString()?.trim().orEmpty()
                 
                 // Collect days
                 val days = mutableListOf<String>()

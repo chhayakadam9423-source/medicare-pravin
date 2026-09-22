@@ -56,13 +56,19 @@ class AdminRepository {
         specialization: String,
         qualification: String,
         experience: String,
-        about: String,
-        imageUrl: String
+        hospital: String = "",
+        department: String = "",
+        consultationFee: Double = 0.0,
+        availableDays: String = "Mon,Tue,Wed,Thu,Fri",
+        startTime: String = "09:00 AM",
+        endTime: String = "05:00 PM",
+        about: String = "",
+        imageUrl: String = ""
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val cleanPhone = AuthRepository().normalizePhone(phone)
-            // In admin mode, create profile record and doctor record
             val profileId = java.util.UUID.randomUUID().toString()
+            
             db.from("profiles").insert(
                 mapOf(
                     "id" to profileId,
@@ -72,17 +78,44 @@ class AdminRepository {
                 )
             )
 
-            db.from("doctors").insert(
-                mapOf(
-                    "profile_id" to profileId,
-                    "specialization" to specialization,
-                    "qualification" to qualification,
-                    "experience_years" to experience,
-                    "bio" to about,
-                    "profile_image_url" to imageUrl,
-                    "available" to true
+            try {
+                db.from("doctors").insert(
+                    mapOf(
+                        "profile_id" to profileId,
+                        "specialization" to specialization,
+                        "qualification" to qualification,
+                        "experience" to experience,
+                        "hospital" to hospital,
+                        "department" to department,
+                        "consultation_fee" to consultationFee,
+                        "available_days" to availableDays,
+                        "start_time" to startTime,
+                        "end_time" to endTime,
+                        "about" to about,
+                        "bio" to about,
+                        "image_url" to imageUrl,
+                        "available" to true
+                    )
                 )
-            )
+            } catch (_: Exception) {
+                db.from("doctors").insert(
+                    mapOf(
+                        "profile_id" to profileId,
+                        "specialization" to specialization,
+                        "qualification" to qualification,
+                        "experience_years" to experience,
+                        "hospital_name" to hospital,
+                        "department" to department,
+                        "consultation_fee" to consultationFee,
+                        "available_days" to availableDays,
+                        "start_time" to startTime,
+                        "end_time" to endTime,
+                        "bio" to about,
+                        "profile_image_url" to imageUrl,
+                        "available" to true
+                    )
+                )
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -98,6 +131,22 @@ class AdminRepository {
             if (doc != null) {
                 db.from("doctors").delete { filter { eq("id", doctorId) } }
                 db.from("profiles").delete { filter { eq("id", doc.profileId) } }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deletePatient(patientId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val patient = db.from("patients").select {
+                filter { eq("id", patientId) }
+            }.decodeSingleOrNull<Patient>()
+
+            if (patient != null) {
+                db.from("patients").delete { filter { eq("id", patientId) } }
+                db.from("profiles").delete { filter { eq("id", patient.profileId) } }
             }
             Result.success(Unit)
         } catch (e: Exception) {

@@ -265,3 +265,74 @@ class PatientAdapter(
 
     override fun getItemCount(): Int = patients.size
 }
+
+class AdminAppointmentAdapter(
+    private var appointments: List<Appointment>,
+    private val onUpdateStatusClick: (Appointment) -> Unit
+) : RecyclerView.Adapter<AdminAppointmentAdapter.AdminAppointmentViewHolder>() {
+
+    fun updateData(newList: List<Appointment>) {
+        appointments = newList
+        notifyDataSetChanged()
+    }
+
+    inner class AdminAppointmentViewHolder(val binding: com.example.medicare.databinding.ItemAdminAppointmentBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(apt: Appointment) {
+            val patientName = apt.patient?.profile?.name ?: "Patient"
+            val docName = apt.doctor?.profile?.name ?: "Doctor"
+
+            binding.tvAdminAptPatientName.text = "Patient: $patientName"
+            binding.tvAdminAptDoctorName.text = "Doctor: $docName (${apt.doctor?.specialization ?: "General"})"
+            binding.tvAdminAptDateTime.text = "📅 ${apt.appointmentDate} • ⏰ ${apt.appointmentTime}"
+            binding.tvAdminAptReason.text = "Reason: ${apt.reason}"
+
+            when (apt.status.lowercase()) {
+                "pending" -> {
+                    binding.tvAdminAptStatusChip.text = "PENDING"
+                    binding.tvAdminAptStatusChip.setTextColor(Color.parseColor("#F59E0B"))
+                    binding.tvAdminAptStatusChip.setBackgroundColor(Color.parseColor("#FEF3C7"))
+                }
+                "confirmed" -> {
+                    binding.tvAdminAptStatusChip.text = "CONFIRMED"
+                    binding.tvAdminAptStatusChip.setTextColor(Color.parseColor("#10B981"))
+                    binding.tvAdminAptStatusChip.setBackgroundColor(Color.parseColor("#D1FAE5"))
+                }
+                "completed" -> {
+                    binding.tvAdminAptStatusChip.text = "COMPLETED"
+                    binding.tvAdminAptStatusChip.setTextColor(Color.parseColor("#3B82F6"))
+                    binding.tvAdminAptStatusChip.setBackgroundColor(Color.parseColor("#DBEAFE"))
+                }
+                "rejected" -> {
+                    binding.tvAdminAptStatusChip.text = "REJECTED"
+                    binding.tvAdminAptStatusChip.setTextColor(Color.parseColor("#EF4444"))
+                    binding.tvAdminAptStatusChip.setBackgroundColor(Color.parseColor("#FEE2E2"))
+                }
+                else -> {
+                    binding.tvAdminAptStatusChip.text = "CANCELLED"
+                    binding.tvAdminAptStatusChip.setTextColor(Color.parseColor("#6B7280"))
+                    binding.tvAdminAptStatusChip.setBackgroundColor(Color.parseColor("#F3F4F6"))
+                }
+            }
+
+            binding.btnAdminAptUpdateStatus.setOnClickListener {
+                onUpdateStatusClick(apt)
+            }
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AdminAppointmentViewHolder {
+        val binding = com.example.medicare.databinding.ItemAdminAppointmentBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return AdminAppointmentViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: AdminAppointmentViewHolder, position: Int) {
+        holder.bind(appointments[position])
+    }
+
+    override fun getItemCount(): Int = appointments.size
+}
