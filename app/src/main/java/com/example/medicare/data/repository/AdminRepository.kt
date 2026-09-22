@@ -76,9 +76,9 @@ class AdminRepository {
                     "profile_id" to profileId,
                     "specialization" to specialization,
                     "qualification" to qualification,
-                    "experience" to experience,
-                    "about" to about,
-                    "image_url" to imageUrl,
+                    "experience_years" to experience,
+                    "bio" to about,
+                    "profile_image_url" to imageUrl,
                     "available" to true
                 )
             )

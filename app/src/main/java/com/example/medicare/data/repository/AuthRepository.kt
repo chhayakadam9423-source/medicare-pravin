@@ -3,8 +3,7 @@ package com.example.medicare.data.repository
 import com.example.medicare.data.SupabaseManager
 import com.example.medicare.data.model.Profile
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.providers.builtin.Phone
-import io.github.jan.supabase.gotrue.user.UserSession
+import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +14,23 @@ class AuthRepository {
     private val auth = SupabaseManager.auth
     private val db = SupabaseManager.db
 
+    /**
+     * Normalizes phone number to digits only for consistent mapping.
+     */
+    fun normalizePhone(phone: String): String {
+        return phone.filter { it.isDigit() }
+    }
+
+    /**
+     * Maps user's mobile number securely to Supabase Auth's email provider.
+     * Keeps user credentials strictly mobile number + password in UI,
+     * while utilizing Supabase's native bcrypt-hashed password system without OTP or SMS gateway.
+     */
+    fun phoneToAuthEmail(phone: String): String {
+        val clean = normalizePhone(phone)
+        return "$clean@medicare.local"
+    }
+
     suspend fun signUp(
         name: String,
         phone: String,
@@ -23,9 +39,11 @@ class AuthRepository {
         extraData: Map<String, String> = emptyMap()
     ): Result<Profile> = withContext(Dispatchers.IO) {
         try {
-            // Sign up user with Supabase GoTrue using Phone provider
-            val user = auth.signUpWith(Phone) {
-                this.phone = phone
+            val syntheticEmail = phoneToAuthEmail(phone)
+
+            // Register user with Supabase Auth using synthetic mobile-number email
+            auth.signUpWith(Email) {
+                this.email = syntheticEmail
                 this.password = userPassword
                 data = buildJsonObject {
                     put("name", name)
@@ -35,22 +53,36 @@ class AuthRepository {
                 }
             }
 
-            val uid = user?.id ?: auth.currentUserOrNull()?.id
-                ?: return@withContext Result.failure(Exception("Registration failed: no user ID returned"))
+            // If session was not automatically established, perform instant sign-in
+            if (auth.currentUserOrNull() == null) {
+                try {
+                    auth.signInWith(Email) {
+                        this.email = syntheticEmail
+                        this.password = userPassword
+                    }
+                } catch (_: Exception) {}
+            }
+
+            val uid = auth.currentUserOrNull()?.id
+                ?: return@withContext Result.failure(Exception("Registration completed, please sign in with your mobile number and password."))
 
             // Fetch profile created by database trigger
-            val profile = db.from("profiles")
-                .select {
-                    filter {
-                        eq("id", uid)
-                    }
-                }.decodeSingleOrNull<Profile>()
+            val profile = try {
+                db.from("profiles")
+                    .select {
+                        filter {
+                            eq("id", uid)
+                        }
+                    }.decodeSingleOrNull<Profile>()
+            } catch (_: Exception) {
+                null
+            }
 
             if (profile != null) {
                 Result.success(profile)
             } else {
-                // In case trigger has a delay or local fallback
-                val fallback = Profile(id = uid, name = name, email = "", phone = phone, role = role)
+                // Fallback profile if trigger has a slight execution latency
+                val fallback = Profile(id = uid, name = name, email = null, phone = phone, role = role)
                 Result.success(fallback)
             }
         } catch (e: Exception) {
@@ -60,25 +92,36 @@ class AuthRepository {
 
     suspend fun signIn(phone: String, userPassword: String): Result<Profile> = withContext(Dispatchers.IO) {
         try {
-            auth.signInWith(Phone) {
-                this.phone = phone
+            val syntheticEmail = phoneToAuthEmail(phone)
+
+            auth.signInWith(Email) {
+                this.email = syntheticEmail
                 this.password = userPassword
             }
 
             val uid = auth.currentUserOrNull()?.id
                 ?: return@withContext Result.failure(Exception("Login failed: no user session"))
 
-            val profile = db.from("profiles")
-                .select {
-                    filter {
-                        eq("id", uid)
-                    }
-                }.decodeSingleOrNull<Profile>()
+            val profile = try {
+                db.from("profiles")
+                    .select {
+                        filter {
+                            eq("id", uid)
+                        }
+                    }.decodeSingleOrNull<Profile>()
+            } catch (_: Exception) {
+                null
+            }
 
             if (profile != null) {
                 Result.success(profile)
             } else {
-                Result.failure(Exception("User profile not found in database"))
+                // Read from user metadata if profile query failed
+                val metadata = auth.currentUserOrNull()?.userMetadata
+                val name = metadata?.get("name")?.toString()?.trim('"') ?: "User"
+                val role = metadata?.get("role")?.toString()?.trim('"') ?: "patient"
+                val fallback = Profile(id = uid, name = name, email = null, phone = phone, role = role)
+                Result.success(fallback)
             }
         } catch (e: Exception) {
             Result.failure(e)

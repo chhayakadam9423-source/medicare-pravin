@@ -45,6 +45,8 @@ data class Patient(
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
     @SerialName("gender") val gender: String? = null,
     @SerialName("blood_group") val bloodGroup: String? = null,
+    @SerialName("address") val address: String? = null,
+    @SerialName("emergency_contact") val emergencyContact: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     // Expanded/joined profile info
     val profile: Profile? = null

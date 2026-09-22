@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS public.patients (
     date_of_birth DATE,
     gender TEXT CHECK (gender IN ('Male', 'Female', 'Other')),
     blood_group TEXT CHECK (blood_group IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')),
+    address TEXT,
+    emergency_contact TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -207,8 +209,15 @@ BEGIN
     );
 
     IF (new.raw_user_meta_data->>'role' = 'patient') THEN
-        INSERT INTO public.patients (profile_id, gender, blood_group)
-        VALUES (new.id, 'Other', 'O+');
+        INSERT INTO public.patients (profile_id, date_of_birth, gender, blood_group, address, emergency_contact)
+        VALUES (
+            new.id,
+            NULLIF(new.raw_user_meta_data->>'date_of_birth', '')::DATE,
+            COALESCE(NULLIF(new.raw_user_meta_data->>'gender', ''), 'Other'),
+            COALESCE(NULLIF(new.raw_user_meta_data->>'blood_group', ''), 'O+'),
+            COALESCE(new.raw_user_meta_data->>'address', ''),
+            COALESCE(new.raw_user_meta_data->>'emergency_contact', '')
+        );
     END IF;
 
     IF (new.raw_user_meta_data->>'role' = 'doctor') THEN
@@ -238,6 +247,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Auto-confirm medicare.local synthetic auth accounts (so SMS/Email verification is never required)
+CREATE OR REPLACE FUNCTION public.auto_confirm_phone_auth()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.email LIKE '%@medicare.local' THEN
+        NEW.email_confirmed_at = COALESCE(NEW.email_confirmed_at, timezone('utc'::text, now()));
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created_confirm ON auth.users;
+CREATE TRIGGER on_auth_user_created_confirm
+    BEFORE INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.auto_confirm_phone_auth();
+
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
@@ -259,7 +284,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Doctors
-INSERT INTO public.doctors (id, profile_id, specialization, qualification, experience, about, image_url, available)
+INSERT INTO public.doctors (id, profile_id, specialization, qualification, experience_years, bio, profile_image_url, available)
 VALUES
 ('11111111-0000-0000-0000-000000000001', 'd1111111-1111-1111-1111-111111111111', 'Cardiologist', 'MBBS, MD (Cardiology), FACC', '12 Years', 'Senior Consultant Interventional Cardiologist specializing in heart disease prevention, echocardiography, and hypertension control.', 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300', true),
 ('11111111-0000-0000-0000-000000000002', 'd2222222-2222-2222-2222-222222222222', 'Neurologist', 'MBBS, DM (Neurology)', '9 Years', 'Specialist in clinical neuroscience, stroke rehabilitation, migraine disorders, and neuromuscular diagnostics.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=300', true),
