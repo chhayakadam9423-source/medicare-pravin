@@ -59,9 +59,9 @@ class DoctorRepository {
                 // If a profile lookup fails for one doctor, do NOT remove the doctor from the list.
                 // Show safe fallback values and continue displaying the doctor.
                 val safeProfile = resolvedProfile ?: Profile(
-                    _id = doc.profileId,
-                    _name = "Dr. ${doc.specialization.ifBlank { "Specialist" }}",
-                    _role = "doctor"
+                    id = doc.profileId,
+                    name = "Dr. ${doc.specialization.ifBlank { "Specialist" }}",
+                    role = "doctor"
                 )
 
                 doc.copy(profile = safeProfile)
@@ -107,9 +107,9 @@ class DoctorRepository {
             } catch (_: Exception) { null }
 
             val safeProfile = profile ?: Profile(
-                _id = doctor.profileId,
-                _name = "Dr. ${doctor.specialization.ifBlank { "Specialist" }}",
-                _role = "doctor"
+                id = doctor.profileId,
+                name = "Dr. ${doctor.specialization.ifBlank { "Specialist" }}",
+                role = "doctor"
             )
 
             Result.success(doctor.copy(profile = safeProfile))
@@ -140,9 +140,9 @@ class DoctorRepository {
             } catch (_: Exception) { null }
 
             val safeProfile = profile ?: Profile(
-                _id = profileId,
-                _name = "Dr. ${doctor.specialization.ifBlank { "Specialist" }}",
-                _role = "doctor"
+                id = profileId,
+                name = "Dr. ${doctor.specialization.ifBlank { "Specialist" }}",
+                role = "doctor"
             )
 
             Result.success(doctor.copy(profile = safeProfile))
