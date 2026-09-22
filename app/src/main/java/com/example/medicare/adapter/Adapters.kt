@@ -247,7 +247,7 @@ class PatientAdapter(
             val name = patient.profile?.name ?: "Patient"
             binding.tvItemPatientName.text = name
             binding.tvItemPatientInitial.text = name.take(1).uppercase()
-            binding.tvItemPatientContact.text = "${patient.profile?.email ?: ""} • ${patient.profile?.phone ?: ""}"
+            binding.tvItemPatientContact.text = "${patient.profile?.phone ?: "No Phone"}"
             binding.tvItemPatientBlood.text = patient.bloodGroup ?: "O+"
 
             binding.root.setOnClickListener { onPatientClick(patient) }

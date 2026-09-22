@@ -28,7 +28,6 @@ class AdminAddDoctorActivity : AppCompatActivity() {
     private fun setupListeners() {
         AnimationUtils.applyPressAnimation(binding.btnAdminSaveDoctor) {
             val name = binding.etAdminDocName.text?.toString()?.trim().orEmpty()
-            val email = binding.etAdminDocEmail.text?.toString()?.trim().orEmpty()
             val phone = binding.etAdminDocPhone.text?.toString()?.trim().orEmpty()
             val specialty = binding.etAdminDocSpecialization.text?.toString()?.trim().orEmpty()
             val qualification = binding.etAdminDocQualification.text?.toString()?.trim().orEmpty()
@@ -41,25 +40,18 @@ class AdminAddDoctorActivity : AppCompatActivity() {
             }
             binding.tilAdminDocName.error = null
 
-            if (email.isEmpty()) {
-                binding.tilAdminDocEmail.error = "Email is required"
-                return@applyPressAnimation
-            }
-            binding.tilAdminDocEmail.error = null
-
             if (specialty.isEmpty()) {
                 binding.tilAdminDocSpecialization.error = "Specialization is required"
                 return@applyPressAnimation
             }
             binding.tilAdminDocSpecialization.error = null
 
-            performSaveDoctor(name, email, phone, specialty, qualification, exp, about)
+            performSaveDoctor(name, phone, specialty, qualification, exp, about)
         }
     }
 
     private fun performSaveDoctor(
         name: String,
-        email: String,
         phone: String,
         specialty: String,
         qual: String,
@@ -71,12 +63,12 @@ class AdminAddDoctorActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val result = adminRepository.addDoctor(
                 name = name,
-                email = email,
                 phone = phone,
                 specialization = specialty,
                 qualification = qual.ifEmpty { "MBBS, MD" },
                 experience = exp.ifEmpty { "5 Years" },
-                about = about.ifEmpty { "Experienced clinician dedicated to excellence in patient treatment." }
+                about = about.ifEmpty { "Experienced clinician dedicated to excellence in patient treatment." },
+                imageUrl = ""
             )
 
             setLoading(false)

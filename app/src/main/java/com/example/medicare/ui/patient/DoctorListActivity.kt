@@ -113,7 +113,7 @@ class DoctorListActivity : AppCompatActivity() {
         binding.llEmptyDoctors.visibility = View.GONE
 
         lifecycleScope.launch {
-            val result = doctorRepository.getDoctors()
+            val result = doctorRepository.getAllDoctors()
             binding.pbDoctorList.visibility = View.GONE
 
             result.fold(

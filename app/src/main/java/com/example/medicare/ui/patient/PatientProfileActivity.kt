@@ -29,12 +29,10 @@ class PatientProfileActivity : AppCompatActivity() {
         binding.toolbarPatientProfile.setNavigationOnClickListener { finish() }
 
         val name = sessionManager.getUserName() ?: "Alex Johnson"
-        val email = sessionManager.getUserEmail() ?: "alex.patient@medicare.com"
         val phone = sessionManager.getUserPhone() ?: "+1-555-0201"
 
         binding.tvProfileName.text = name
         binding.tvProfileAvatarInitial.text = name.take(1).uppercase()
-        binding.tvProfileEmail.text = email
         binding.tvProfilePhone.text = phone
     }
 

@@ -14,10 +14,6 @@ import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 
 object SupabaseManager {
-    // Default fallback credentials if not provided in BuildConfig
-    // Users can override via BuildConfig or App Settings
-    var supabaseUrl: String = "https://your-project-id.supabase.co"
-    var supabaseKey: String = "your-public-anon-key"
 
     lateinit var client: SupabaseClient
         private set
@@ -37,12 +33,27 @@ object SupabaseManager {
     fun isInitialized(): Boolean = ::client.isInitialized
 
     fun initialize(context: Context) {
-        val prefs = context.getSharedPreferences("medicare_config", Context.MODE_PRIVATE)
-        val savedUrl = prefs.getString("supabase_url", null)
-        val savedKey = prefs.getString("supabase_key", null)
 
-        val targetUrl = (savedUrl ?: BuildConfig.SUPABASE_URL.ifEmpty { supabaseUrl }).trim()
-        val targetKey = (savedKey ?: BuildConfig.SUPABASE_ANON_KEY.ifEmpty { supabaseKey }).trim()
+        // Read credentials from BuildConfig
+        var targetUrl = BuildConfig.SUPABASE_URL.trim()
+        val targetKey = BuildConfig.SUPABASE_ANON_KEY.trim()
+
+        // Remove accidental Supabase API endpoint suffixes.
+        // supabase-kt adds these endpoints automatically.
+        targetUrl = targetUrl.replace("(rest/v1)|(auth/v1)|(storage/v1)|(realtime/v1)".toRegex(), "")
+            .removeSuffix("/")
+
+        require(targetUrl.isNotBlank()) {
+            "SUPABASE_URL is empty"
+        }
+
+        require(targetKey.isNotBlank()) {
+            "SUPABASE_ANON_KEY is empty"
+        }
+
+        require(!targetUrl.contains("/rest/v1")) {
+            "SUPABASE_URL must be the base Supabase project URL"
+        }
 
         client = createSupabaseClient(
             supabaseUrl = targetUrl,
@@ -53,14 +64,5 @@ object SupabaseManager {
             install(Storage)
             install(Realtime)
         }
-    }
-
-    fun updateConfig(context: Context, newUrl: String, newKey: String) {
-        val prefs = context.getSharedPreferences("medicare_config", Context.MODE_PRIVATE)
-        prefs.edit()
-            .putString("supabase_url", newUrl)
-            .putString("supabase_key", newKey)
-            .apply()
-        initialize(context)
     }
 }

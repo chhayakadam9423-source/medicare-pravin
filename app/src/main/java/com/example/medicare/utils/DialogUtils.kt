@@ -9,11 +9,12 @@ import android.view.Window
 import android.widget.Button
 import android.widget.TextView
 import com.example.medicare.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 
 object DialogUtils {
 
-    fun showSuccessDialog(
+    fun showSuccess(
         context: Context,
         title: String,
         message: String,
@@ -42,6 +43,43 @@ object DialogUtils {
         dialog.show()
     }
 
+    fun showError(
+        context: Context,
+        title: String,
+        message: String,
+        onDismiss: (() -> Unit)? = null
+    ) {
+        MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+                onDismiss?.invoke()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    fun showConfirmation(
+        context: Context,
+        title: String,
+        message: String,
+        onConfirm: () -> Unit
+    ) {
+        MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("Yes") { dialog, _ ->
+                dialog.dismiss()
+                onConfirm()
+            }
+            .setNegativeButton("No") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
     fun showSnackbar(view: android.view.View, message: String, isError: Boolean = false) {
         val snackbar = Snackbar.make(view, message, Snackbar.LENGTH_LONG)
         if (isError) {
@@ -54,3 +92,4 @@ object DialogUtils {
         snackbar.show()
     }
 }
+

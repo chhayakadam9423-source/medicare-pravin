@@ -39,7 +39,7 @@ class PatientDashboardActivity : AppCompatActivity() {
     private fun setupUI() {
         val userName = sessionManager.getUserName() ?: "Patient"
         binding.tvPatientGreeting.text = "Hello, $userName"
-        binding.tvPatientAvatarInitial.text = userName.take(1).uppercase()
+        binding.tvAvatarInitial.text = userName.take(1).uppercase()
 
         // Setup Top Doctors RecyclerView
         doctorAdapter = DoctorAdapter(
@@ -65,7 +65,7 @@ class PatientDashboardActivity : AppCompatActivity() {
             }
         )
 
-        binding.rvTopDoctors.apply {
+        binding.rvDashboardDoctors.apply {
             layoutManager = LinearLayoutManager(this@PatientDashboardActivity)
             adapter = doctorAdapter
         }
@@ -94,56 +94,26 @@ class PatientDashboardActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         // Search Banner
-        binding.cardSearchBanner.setOnClickListener {
+        binding.cardSearchBar.setOnClickListener {
             startActivity(Intent(this, DoctorListActivity::class.java))
         }
 
         // View All Doctors
-        binding.tvViewAllDoctors.setOnClickListener {
+        binding.tvSeeAllDoctors.setOnClickListener {
             startActivity(Intent(this, DoctorListActivity::class.java))
-        }
-
-        // Quick Actions
-        AnimationUtils.applyPressAnimation(binding.btnActionBook) {
-            startActivity(Intent(this, DoctorListActivity::class.java))
-        }
-
-        AnimationUtils.applyPressAnimation(binding.btnActionAppointments) {
-            startActivity(Intent(this, MyAppointmentsActivity::class.java))
-        }
-
-        AnimationUtils.applyPressAnimation(binding.btnActionPrescriptions) {
-            startActivity(Intent(this, MyAppointmentsActivity::class.java))
-        }
-
-        AnimationUtils.applyPressAnimation(binding.btnActionEmergency) {
-            DialogUtils.showSuccess(
-                this,
-                title = "Emergency Assistance",
-                message = "Connecting to Medicare 24/7 Emergency Medical Response hotline (+1-800-MEDICARE)."
-            ) {
-                val intent = Intent(Intent.ACTION_DIAL).apply {
-                    data = Uri.parse("tel:911")
-                }
-                try {
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    // Safe handling if dialer is absent
-                }
-            }
         }
 
         // Category Cards
-        binding.cardCategoryCardio.setOnClickListener {
+        binding.catCardiology.setOnClickListener {
             openSpecialty("Cardiologist")
         }
-        binding.cardCategoryNeuro.setOnClickListener {
+        binding.catNeurology.setOnClickListener {
             openSpecialty("Neurologist")
         }
-        binding.cardCategoryPediatric.setOnClickListener {
+        binding.catPediatrics.setOnClickListener {
             openSpecialty("Pediatrician")
         }
-        binding.cardCategoryDental.setOnClickListener {
+        binding.catOrthopedics.setOnClickListener {
             openSpecialty("Dentist")
         }
 
@@ -161,11 +131,11 @@ class PatientDashboardActivity : AppCompatActivity() {
     }
 
     private fun loadTopDoctors() {
-        binding.pbDashDoctorsLoading.visibility = View.VISIBLE
+        binding.pbDashboardDoctors.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            val result = doctorRepository.getDoctors()
-            binding.pbDashDoctorsLoading.visibility = View.GONE
+            val result = doctorRepository.getAllDoctors()
+            binding.pbDashboardDoctors.visibility = View.GONE
 
             result.fold(
                 onSuccess = { list ->

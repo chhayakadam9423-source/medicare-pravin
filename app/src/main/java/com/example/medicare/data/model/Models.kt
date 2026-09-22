@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class Profile(
     @SerialName("id") val id: String,
     @SerialName("name") val name: String,
-    @SerialName("email") val email: String,
+    @SerialName("email") val email: String? = null,
     @SerialName("phone") val phone: String? = null,
     @SerialName("role") val role: String, // 'patient', 'doctor', 'admin'
     @SerialName("created_at") val createdAt: String? = null
@@ -19,9 +19,16 @@ data class Doctor(
     @SerialName("profile_id") val profileId: String = "",
     @SerialName("specialization") val specialization: String,
     @SerialName("qualification") val qualification: String,
-    @SerialName("experience") val experience: String,
-    @SerialName("about") val about: String? = null,
-    @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("experience_years") val experience: String,
+    @SerialName("license_number") val licenseNumber: String? = null,
+    @SerialName("hospital_name") val hospitalName: String? = null,
+    @SerialName("department") val department: String? = null,
+    @SerialName("consultation_fee") val consultationFee: Double? = null,
+    @SerialName("available_days") val availableDays: String? = null,
+    @SerialName("start_time") val startTime: String? = null,
+    @SerialName("end_time") val endTime: String? = null,
+    @SerialName("bio") val about: String? = null,
+    @SerialName("profile_image_url") val imageUrl: String? = null,
     @SerialName("available") val available: Boolean = true,
     @SerialName("created_at") val createdAt: String? = null,
     // Expanded/joined profile info

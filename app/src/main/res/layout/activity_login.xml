@@ -60,23 +60,23 @@
                 android:orientation="vertical"
                 android:padding="20dp">
 
-                <!-- Email -->
+                <!-- Mobile Number -->
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilLoginEmail"
+                    android:id="@+id/tilLoginPhone"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/email"
+                    android:hint="@string/phone"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
                     app:boxCornerRadiusTopStart="12dp">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etLoginEmail"
+                        android:id="@+id/etLoginPhone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textEmailAddress" />
+                        android:inputType="phone" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Password -->

@@ -3,7 +3,7 @@ package com.example.medicare.data.repository
 import com.example.medicare.data.SupabaseManager
 import com.example.medicare.data.model.Profile
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.providers.builtin.Email
+import io.github.jan.supabase.gotrue.providers.builtin.Phone
 import io.github.jan.supabase.gotrue.user.UserSession
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
@@ -17,20 +17,21 @@ class AuthRepository {
 
     suspend fun signUp(
         name: String,
-        email: String,
         phone: String,
-        password: String,
-        role: String
+        userPassword: String,
+        role: String,
+        extraData: Map<String, String> = emptyMap()
     ): Result<Profile> = withContext(Dispatchers.IO) {
         try {
-            // Sign up user with Supabase GoTrue
-            val user = auth.signUpWith(Email) {
-                this.email = email
-                this.password = password
+            // Sign up user with Supabase GoTrue using Phone provider
+            val user = auth.signUpWith(Phone) {
+                this.phone = phone
+                this.password = userPassword
                 data = buildJsonObject {
                     put("name", name)
                     put("phone", phone)
                     put("role", role)
+                    extraData.forEach { (k, v) -> put(k, v) }
                 }
             }
 
@@ -49,7 +50,7 @@ class AuthRepository {
                 Result.success(profile)
             } else {
                 // In case trigger has a delay or local fallback
-                val fallback = Profile(id = uid, name = name, email = email, phone = phone, role = role)
+                val fallback = Profile(id = uid, name = name, email = "", phone = phone, role = role)
                 Result.success(fallback)
             }
         } catch (e: Exception) {
@@ -57,11 +58,11 @@ class AuthRepository {
         }
     }
 
-    suspend fun signIn(email: String, password: String): Result<Profile> = withContext(Dispatchers.IO) {
+    suspend fun signIn(phone: String, userPassword: String): Result<Profile> = withContext(Dispatchers.IO) {
         try {
-            auth.signInWith(Email) {
-                this.email = email
-                this.password = password
+            auth.signInWith(Phone) {
+                this.phone = phone
+                this.password = userPassword
             }
 
             val uid = auth.currentUserOrNull()?.id

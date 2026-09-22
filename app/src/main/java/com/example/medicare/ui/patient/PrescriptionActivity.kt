@@ -31,7 +31,7 @@ class PrescriptionActivity : AppCompatActivity() {
 
     private fun loadPrescription(appointmentId: String) {
         lifecycleScope.launch {
-            val result = prescriptionRepository.getPrescriptionForAppointment(appointmentId)
+            val result = prescriptionRepository.getPrescriptionByAppointmentId(appointmentId)
 
             result.fold(
                 onSuccess = { prescription ->

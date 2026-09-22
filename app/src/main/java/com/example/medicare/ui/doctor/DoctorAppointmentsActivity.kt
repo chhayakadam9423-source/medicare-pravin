@@ -44,6 +44,8 @@ class DoctorAppointmentsActivity : AppCompatActivity() {
                 val intent = Intent(this, AddPrescriptionActivity::class.java).apply {
                     putExtra("APPOINTMENT_ID", apt.id)
                     putExtra("PATIENT_NAME", apt.patient?.profile?.name)
+                    putExtra("PATIENT_ID", apt.patientId)
+                    putExtra("DOCTOR_ID", apt.doctorId)
                 }
                 startActivity(intent)
             }
@@ -64,7 +66,7 @@ class DoctorAppointmentsActivity : AppCompatActivity() {
         binding.pbDocAppointmentsLoading.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            val result = appointmentRepository.getAppointmentsForDoctor(doctorId)
+            val result = appointmentRepository.getDoctorAppointments(doctorId)
             binding.pbDocAppointmentsLoading.visibility = View.GONE
             binding.swipeRefreshDocAppointments.isRefreshing = false
 

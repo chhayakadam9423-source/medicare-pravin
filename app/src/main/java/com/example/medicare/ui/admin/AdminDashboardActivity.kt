@@ -55,7 +55,7 @@ class AdminDashboardActivity : AppCompatActivity() {
 
     private fun loadStats() {
         lifecycleScope.launch {
-            val result = adminRepository.getSystemStats()
+            val result = adminRepository.getDashboardStats()
             result.fold(
                 onSuccess = { stats ->
                     binding.tvAdminTotalDoctors.text = stats.totalDoctors.toString()

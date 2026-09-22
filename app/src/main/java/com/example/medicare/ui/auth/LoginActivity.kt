@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.medicare.data.model.UserRole
 import com.example.medicare.data.repository.AuthRepository
 import com.example.medicare.databinding.ActivityLoginBinding
 import com.example.medicare.ui.admin.AdminDashboardActivity
@@ -34,65 +33,59 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         // Sign In Button
-        AnimationUtils.applyPressAnimation(binding.btnLogin) {
-            val email = binding.etEmail.text?.toString()?.trim().orEmpty()
-            val password = binding.etPassword.text?.toString()?.trim().orEmpty()
+        AnimationUtils.applyPressAnimation(binding.btnLoginSubmit) {
+            val phone = binding.etLoginPhone.text?.toString()?.trim().orEmpty()
+            val password = binding.etLoginPassword.text?.toString()?.trim().orEmpty()
 
-            if (email.isEmpty()) {
-                binding.tilEmail.error = "Please enter your email"
+            if (phone.isEmpty()) {
+                binding.tilLoginPhone.error = "Please enter your mobile number"
                 return@applyPressAnimation
             }
-            binding.tilEmail.error = null
+            binding.tilLoginPhone.error = null
 
             if (password.isEmpty()) {
-                binding.tilPassword.error = "Please enter your password"
+                binding.tilLoginPassword.error = "Please enter your password"
                 return@applyPressAnimation
             }
-            binding.tilPassword.error = null
+            binding.tilLoginPassword.error = null
 
-            performLogin(email, password)
+            performLogin(phone, password)
         }
 
         // Navigate to Register
-        binding.tvGoToRegister.setOnClickListener {
+        binding.tvLoginGoToRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
-        // Demo Quick Fill Chips
-        binding.chipDemoPatient.setOnClickListener {
-            binding.etEmail.setText("patient@medicare.com")
-            binding.etPassword.setText("Password123!")
+        // Demo Quick Fill Chips (Updating to phone numbers for testing based on schema seed)
+        binding.btnQuickPatient.setOnClickListener {
+            binding.etLoginPhone.setText("+1-555-0201")
+            binding.etLoginPassword.setText("Password123!") // Or whatever the seed passwords are, assuming they use a default if it's not setup.
         }
 
-        binding.chipDemoDoctor.setOnClickListener {
-            binding.etEmail.setText("doctor@medicare.com")
-            binding.etPassword.setText("Password123!")
+        binding.btnQuickDoctor.setOnClickListener {
+            binding.etLoginPhone.setText("+1-555-0101")
+            binding.etLoginPassword.setText("Password123!")
         }
 
-        binding.chipDemoAdmin.setOnClickListener {
-            binding.etEmail.setText("admin@medicare.com")
-            binding.etPassword.setText("Password123!")
+        binding.btnQuickAdmin.setOnClickListener {
+            binding.etLoginPhone.setText("+1-555-0999")
+            binding.etLoginPassword.setText("Password123!")
         }
     }
 
-    private fun performLogin(email: String, pass: String) {
+    private fun performLogin(phone: String, pass: String) {
         setLoading(true)
 
         lifecycleScope.launch {
-            val result = authRepository.signIn(email, pass)
+            val result = authRepository.signIn(phone, pass)
 
             setLoading(false)
 
             result.fold(
                 onSuccess = { profile ->
                     // Save Session
-                    sessionManager.saveUserSession(
-                        userId = profile.id,
-                        email = profile.email,
-                        name = profile.name,
-                        role = profile.role.name.lowercase(),
-                        phone = profile.phone
-                    )
+                    sessionManager.saveUserSession(profile)
 
                     // Navigate based on role
                     navigateToDashboard(profile.role)
@@ -101,18 +94,19 @@ class LoginActivity : AppCompatActivity() {
                     DialogUtils.showError(
                         this@LoginActivity,
                         title = "Login Failed",
-                        message = error.localizedMessage ?: "Invalid email or password. Please try again."
+                        message = "Invalid mobile number or password. Please try again."
                     )
                 }
             )
         }
     }
 
-    private fun navigateToDashboard(role: UserRole) {
-        val intent = when (role) {
-            UserRole.PATIENT -> Intent(this, PatientDashboardActivity::class.java)
-            UserRole.DOCTOR -> Intent(this, DoctorDashboardActivity::class.java)
-            UserRole.ADMIN -> Intent(this, AdminDashboardActivity::class.java)
+    private fun navigateToDashboard(role: String) {
+        val intent = when (role.lowercase()) {
+            "patient" -> Intent(this, PatientDashboardActivity::class.java)
+            "doctor" -> Intent(this, DoctorDashboardActivity::class.java)
+            "admin" -> Intent(this, AdminDashboardActivity::class.java)
+            else -> Intent(this, PatientDashboardActivity::class.java)
         }
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
@@ -121,7 +115,7 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setLoading(loading: Boolean) {
         binding.pbLoginLoading.visibility = if (loading) View.VISIBLE else View.GONE
-        binding.btnLogin.isEnabled = !loading
-        binding.btnLogin.text = if (loading) "" else "SIGN IN"
+        binding.btnLoginSubmit.isEnabled = !loading
+        binding.btnLoginSubmit.text = if (loading) "" else "SIGN IN"
     }
 }

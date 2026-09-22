@@ -37,7 +37,7 @@ class AdminManagePatientsActivity : AppCompatActivity() {
                 DialogUtils.showSuccess(
                     this,
                     title = name,
-                    message = "Email: ${patient.profile?.email}\nPhone: ${patient.profile?.phone}\nBlood Group: ${patient.bloodGroup}\nGender: ${patient.gender}\nMedical Notes: ${patient.medicalHistory ?: "None reported"}"
+                    message = "Phone: ${patient.profile?.phone}\nBlood Group: ${patient.bloodGroup}\nGender: ${patient.gender}"
                 )
             }
         )

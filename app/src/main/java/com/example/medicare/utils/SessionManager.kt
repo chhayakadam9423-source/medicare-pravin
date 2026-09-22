@@ -22,6 +22,7 @@ class SessionManager(context: Context) {
             putString(KEY_USER_NAME, profile.name)
             putString(KEY_USER_EMAIL, profile.email)
             putString(KEY_USER_ROLE, profile.role)
+            putString("user_phone", profile.phone ?: "")
             apply()
         }
     }
@@ -30,6 +31,7 @@ class SessionManager(context: Context) {
     fun getUserName(): String = prefs.getString(KEY_USER_NAME, "User") ?: "User"
     fun getUserEmail(): String = prefs.getString(KEY_USER_EMAIL, "") ?: ""
     fun getUserRole(): String = prefs.getString(KEY_USER_ROLE, "patient") ?: "patient"
+    fun getUserPhone(): String = prefs.getString("user_phone", "+1-555-0201") ?: "+1-555-0201"
     fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
 
     fun clearSession() {

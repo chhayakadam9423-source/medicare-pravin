@@ -15,6 +15,8 @@ class AddPrescriptionActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddPrescriptionBinding
     private val prescriptionRepository = PrescriptionRepository()
     private var appointmentId: String = ""
+    private var patientId: String = ""
+    private var doctorId: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,6 +24,8 @@ class AddPrescriptionActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         appointmentId = intent.getStringExtra("APPOINTMENT_ID") ?: ""
+        patientId = intent.getStringExtra("PATIENT_ID") ?: ""
+        doctorId = intent.getStringExtra("DOCTOR_ID") ?: ""
         val patientName = intent.getStringExtra("PATIENT_NAME") ?: "Patient"
 
         binding.toolbarAddPrescription.setNavigationOnClickListener { finish() }
@@ -65,6 +69,8 @@ class AddPrescriptionActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val result = prescriptionRepository.createPrescription(
                 appointmentId = appointmentId,
+                patientId = patientId,
+                doctorId = doctorId,
                 medicine = med,
                 dosage = dos,
                 frequency = freq,

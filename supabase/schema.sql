@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     phone TEXT,
     role TEXT NOT NULL CHECK (role IN ('patient', 'doctor', 'admin')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -22,9 +22,16 @@ CREATE TABLE IF NOT EXISTS public.doctors (
     profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     specialization TEXT NOT NULL,
     qualification TEXT NOT NULL,
-    experience TEXT NOT NULL,
-    about TEXT,
-    image_url TEXT,
+    experience_years TEXT NOT NULL,
+    license_number TEXT,
+    hospital_name TEXT,
+    department TEXT,
+    consultation_fee NUMERIC,
+    available_days TEXT,
+    start_time TEXT,
+    end_time TEXT,
+    bio TEXT,
+    profile_image_url TEXT,
     available BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -205,13 +212,24 @@ BEGIN
     END IF;
 
     IF (new.raw_user_meta_data->>'role' = 'doctor') THEN
-        INSERT INTO public.doctors (profile_id, specialization, qualification, experience, about, available)
+        INSERT INTO public.doctors (
+            profile_id, specialization, qualification, experience_years,
+            license_number, hospital_name, department, consultation_fee,
+            available_days, start_time, end_time, bio, available
+        )
         VALUES (
             new.id, 
             COALESCE(new.raw_user_meta_data->>'specialization', 'General Medicine'),
             COALESCE(new.raw_user_meta_data->>'qualification', 'MBBS, MD'),
             COALESCE(new.raw_user_meta_data->>'experience', '5+ Years'),
-            'Dedicated healthcare professional providing compassionate patient care.',
+            COALESCE(new.raw_user_meta_data->>'license_number', ''),
+            COALESCE(new.raw_user_meta_data->>'hospital_name', ''),
+            COALESCE(new.raw_user_meta_data->>'department', ''),
+            NULLIF(new.raw_user_meta_data->>'consultation_fee', '')::NUMERIC,
+            COALESCE(new.raw_user_meta_data->>'available_days', ''),
+            COALESCE(new.raw_user_meta_data->>'start_time', ''),
+            COALESCE(new.raw_user_meta_data->>'end_time', ''),
+            COALESCE(new.raw_user_meta_data->>'about', ''),
             true
         );
     END IF;

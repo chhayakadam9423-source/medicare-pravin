@@ -72,7 +72,7 @@ class MyAppointmentsActivity : AppCompatActivity() {
         binding.llEmptyAppointments.visibility = View.GONE
 
         lifecycleScope.launch {
-            val result = appointmentRepository.getAppointmentsForPatient(patientId)
+            val result = appointmentRepository.getPatientAppointments(patientId)
             binding.pbAppointmentsLoading.visibility = View.GONE
             binding.swipeRefreshAppointments.isRefreshing = false
 

@@ -125,11 +125,11 @@ class BookAppointmentActivity : AppCompatActivity() {
         setLoading(true)
 
         lifecycleScope.launch {
-            val result = appointmentRepository.bookAppointment(
+            val result = appointmentRepository.createAppointment(
                 patientId = patientId,
                 doctorId = docId,
-                appointmentDate = date,
-                appointmentTime = time,
+                date = date,
+                time = time,
                 reason = reason
             )
 

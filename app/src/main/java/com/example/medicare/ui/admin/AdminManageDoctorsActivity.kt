@@ -61,7 +61,7 @@ class AdminManageDoctorsActivity : AppCompatActivity() {
         binding.pbAdminDoctorsLoading.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            val result = doctorRepository.getDoctors()
+            val result = doctorRepository.getAllDoctors()
             binding.pbAdminDoctorsLoading.visibility = View.GONE
 
             result.fold(

@@ -48,6 +48,8 @@ class DoctorDashboardActivity : AppCompatActivity() {
                 val intent = Intent(this, AddPrescriptionActivity::class.java).apply {
                     putExtra("APPOINTMENT_ID", apt.id)
                     putExtra("PATIENT_NAME", apt.patient?.profile?.name)
+                    putExtra("PATIENT_ID", apt.patientId)
+                    putExtra("DOCTOR_ID", apt.doctorId)
                 }
                 startActivity(intent)
             }
@@ -90,7 +92,7 @@ class DoctorDashboardActivity : AppCompatActivity() {
         binding.pbDoctorDashLoading.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            val result = appointmentRepository.getAppointmentsForDoctor(doctorId)
+            val result = appointmentRepository.getDoctorAppointments(doctorId)
             binding.pbDoctorDashLoading.visibility = View.GONE
 
             result.fold(

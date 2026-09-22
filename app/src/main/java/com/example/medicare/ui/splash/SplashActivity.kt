@@ -32,7 +32,7 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun startAnimations() {
-        binding.ivLogo.apply {
+        binding.ivSplashLogo.apply {
             alpha = 0f
             scaleX = 0.8f
             scaleY = 0.8f
@@ -52,7 +52,7 @@ class SplashActivity : AppCompatActivity() {
                 .start()
         }
 
-        binding.tvAppName.apply {
+        binding.tvSplashName.apply {
             alpha = 0f
             translationY = 20f
             animate()
@@ -63,7 +63,7 @@ class SplashActivity : AppCompatActivity() {
                 .start()
         }
 
-        binding.tvAppTagline.apply {
+        binding.tvSplashTagline.apply {
             alpha = 0f
             animate()
                 .alpha(1f)

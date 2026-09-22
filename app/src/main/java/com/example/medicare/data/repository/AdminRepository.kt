@@ -52,7 +52,6 @@ class AdminRepository {
 
     suspend fun addDoctor(
         name: String,
-        email: String,
         phone: String,
         specialization: String,
         qualification: String,
@@ -67,7 +66,6 @@ class AdminRepository {
                 mapOf(
                     "id" to profileId,
                     "name" to name,
-                    "email" to email,
                     "phone" to phone,
                     "role" to "doctor"
                 )
