@@ -16,6 +16,24 @@ data class Profile(
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 ) {
+    constructor(
+        id: String,
+        name: String = "User",
+        email: String? = null,
+        phone: String? = null,
+        role: String = "patient",
+        avatarUrl: String? = null,
+        createdAt: String? = null
+    ) : this(
+        _id = id,
+        _name = name,
+        email = email,
+        phone = phone,
+        _role = role,
+        avatarUrl = avatarUrl,
+        createdAt = createdAt
+    )
+
     val id: String
         get() = _id ?: ""
 
@@ -52,6 +70,51 @@ data class Doctor(
     // Expanded/joined profile info
     val profile: Profile? = null
 ) {
+    constructor(
+        id: String = "",
+        profileId: String = "",
+        userId: String = "",
+        specialization: String = "General Medicine",
+        qualification: String = "MBBS, MD",
+        experience: String? = null,
+        licenseNumber: String? = null,
+        hospital: String? = null,
+        department: String? = null,
+        consultationFee: JsonElement? = null,
+        availableDays: String? = null,
+        startTime: String? = null,
+        endTime: String? = null,
+        about: String? = null,
+        bio: String? = null,
+        imageUrl: String? = null,
+        available: Boolean = true,
+        createdAt: String? = null,
+        profile: Profile? = null
+    ) : this(
+        _id = id,
+        _profileId = profileId,
+        _userId = userId,
+        _specialization = specialization,
+        _qualification = qualification,
+        _experience = experience,
+        _experienceYears = null,
+        licenseNumber = licenseNumber,
+        _hospital = hospital,
+        _hospitalName = null,
+        _department = department,
+        _consultationFee = consultationFee,
+        _availableDays = availableDays,
+        _startTime = startTime,
+        _endTime = endTime,
+        _about = about,
+        _bio = bio,
+        _imageUrl = imageUrl,
+        _profileImageUrl = null,
+        _available = available,
+        createdAt = createdAt,
+        profile = profile
+    )
+
     val id: String
         get() = _id ?: ""
 
