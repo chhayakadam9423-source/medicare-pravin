@@ -49,10 +49,10 @@ export const initialDoctors: DoctorItem[] = [
   {
     id: 'doc-1',
     user_id: 'user-doc-1',
-    specialization: 'Cardiologist',
-    qualification: 'MBBS, MD (Cardiology), FACC',
+    specialization: 'General Medicine',
+    qualification: 'MBBS, MD',
     experience: '12 Years',
-    about: 'Senior Consultant Cardiologist dedicated to comprehensive cardiovascular healthcare, preventive cardiology, hypertension control, and patient-centered rehabilitation.',
+    about: 'Senior Consultant dedicated to comprehensive healthcare, preventive medicine, and patient care.',
     available: true,
     rating: 4.9,
     profile: initialProfiles[1]
@@ -60,10 +60,10 @@ export const initialDoctors: DoctorItem[] = [
   {
     id: 'doc-2',
     user_id: 'user-doc-2',
-    specialization: 'Neurologist',
-    qualification: 'MD, DM (Neurology)',
-    experience: '9 Years',
-    about: 'Specialized in neurological diagnostic evaluation, migraine therapy, neuro-rehabilitation, and treatment of complex neuro-muscular disorders.',
+    specialization: 'hsjak',
+    qualification: 'hshsh',
+    experience: '5+ Years',
+    about: 'Consultant physician providing dedicated patient consultation and clinical care.',
     available: true,
     rating: 4.8,
     profile: initialProfiles[2]

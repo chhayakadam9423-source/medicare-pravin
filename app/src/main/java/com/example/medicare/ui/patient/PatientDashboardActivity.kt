@@ -47,19 +47,26 @@ class PatientDashboardActivity : AppCompatActivity() {
             onDoctorClick = { doctor ->
                 val intent = Intent(this, DoctorDetailsActivity::class.java).apply {
                     putExtra("DOCTOR_ID", doctor.id)
-                    putExtra("DOCTOR_NAME", doctor.profile?.name)
+                    putExtra("DOCTOR_NAME", doctor.doctorName)
                     putExtra("DOCTOR_SPECIALIZATION", doctor.specialization)
                     putExtra("DOCTOR_QUALIFICATION", doctor.qualification)
                     putExtra("DOCTOR_EXPERIENCE", doctor.experience)
+                    putExtra("DOCTOR_HOSPITAL", doctor.hospital)
+                    putExtra("DOCTOR_DEPARTMENT", doctor.department)
+                    putExtra("DOCTOR_FEE", doctor.consultationFee ?: 500.0)
+                    putExtra("DOCTOR_DAYS", doctor.availableDays)
+                    putExtra("DOCTOR_HOURS", doctor.workingHours)
                     putExtra("DOCTOR_ABOUT", doctor.about)
+                    putExtra("DOCTOR_AVAILABLE", doctor.available)
                 }
                 startActivity(intent)
             },
             onBookClick = { doctor ->
                 val intent = Intent(this, BookAppointmentActivity::class.java).apply {
                     putExtra("DOCTOR_ID", doctor.id)
-                    putExtra("DOCTOR_NAME", doctor.profile?.name)
+                    putExtra("DOCTOR_NAME", doctor.doctorName)
                     putExtra("DOCTOR_SPECIALIZATION", doctor.specialization)
+                    putExtra("DOCTOR_FEE", doctor.consultationFee ?: 500.0)
                 }
                 startActivity(intent)
             }
@@ -139,12 +146,11 @@ class PatientDashboardActivity : AppCompatActivity() {
 
             result.fold(
                 onSuccess = { list ->
-                    // Show top 3 available doctors
-                    val top = list.take(3)
-                    doctorAdapter.updateData(top)
+                    // Display all dynamically loaded available doctors from Supabase
+                    doctorAdapter.updateData(list)
                 },
                 onFailure = {
-                    // Handled gracefully with default seeded doctors
+                    // Handled gracefully with fallback
                 }
             )
         }
@@ -153,5 +159,6 @@ class PatientDashboardActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         binding.bottomNavigationPatient.selectedItemId = R.id.nav_home
+        loadTopDoctors()
     }
 }

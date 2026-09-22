@@ -28,11 +28,14 @@ class DoctorAdapter(
 
     inner class DoctorViewHolder(val binding: ItemDoctorBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(doctor: Doctor) {
-            val name = doctor.profile?.name ?: "Dr. Specialist"
+            val name = doctor.profile?.name?.takeIf { it.isNotBlank() } ?: doctor.doctorName
             binding.tvDoctorName.text = name
-            binding.tvDoctorSpecialization.text = doctor.specialization
-            binding.tvDoctorQualification.text = "${doctor.qualification} • ${doctor.experience} Exp."
-            binding.tvDoctorInitial.text = name.take(2).uppercase()
+            binding.tvDoctorSpecialization.text = "${doctor.specialization} • ${doctor.department}"
+            binding.tvDoctorQualification.text = "${doctor.qualification} • ${doctor.experience}"
+            binding.tvDoctorInitial.text = name.replace("Dr.", "").trim().take(2).uppercase().ifBlank { "DR" }
+
+            val feeText = doctor.consultationFee?.let { " • ₹${it.toInt()}" } ?: ""
+            binding.tvDoctorRating.text = "🏥 ${doctor.hospital} • ${doctor.availableDays} (${doctor.workingHours})$feeText"
 
             if (doctor.available) {
                 binding.tvDoctorAvailability.text = "Available"

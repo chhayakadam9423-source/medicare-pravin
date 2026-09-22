@@ -2,54 +2,107 @@ package com.example.medicare.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 @Serializable
 data class Profile(
-    @SerialName("id") val id: String,
-    @SerialName("name") val name: String,
+    @SerialName("id") private val _id: String? = null,
+    @SerialName("name") private val _name: String? = null,
     @SerialName("email") val email: String? = null,
     @SerialName("phone") val phone: String? = null,
-    @SerialName("role") val role: String, // 'patient', 'doctor', 'admin'
+    @SerialName("role") private val _role: String? = null, // 'patient', 'doctor', 'admin'
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
-)
+) {
+    val id: String
+        get() = _id ?: ""
+
+    val name: String
+        get() = _name?.takeIf { it.isNotBlank() } ?: "User"
+
+    val role: String
+        get() = _role?.takeIf { it.isNotBlank() } ?: "patient"
+}
 
 @Serializable
 data class Doctor(
-    @SerialName("id") val id: String = "",
-    @SerialName("profile_id") val profileId: String = "",
-    @SerialName("specialization") val specialization: String = "",
-    @SerialName("qualification") val qualification: String = "",
+    @SerialName("id") private val _id: String? = null,
+    @SerialName("profile_id") private val _profileId: String? = null,
+    @SerialName("user_id") private val _userId: String? = null,
+    @SerialName("specialization") private val _specialization: String? = null,
+    @SerialName("qualification") private val _qualification: String? = null,
     @SerialName("experience") private val _experience: String? = null,
     @SerialName("experience_years") private val _experienceYears: String? = null,
     @SerialName("license_number") val licenseNumber: String? = null,
     @SerialName("hospital") private val _hospital: String? = null,
     @SerialName("hospital_name") private val _hospitalName: String? = null,
-    @SerialName("department") val department: String? = null,
-    @SerialName("consultation_fee") val consultationFee: Double? = null,
-    @SerialName("available_days") val availableDays: String? = null,
-    @SerialName("start_time") val startTime: String? = null,
-    @SerialName("end_time") val endTime: String? = null,
+    @SerialName("department") private val _department: String? = null,
+    @SerialName("consultation_fee") private val _consultationFee: JsonElement? = null,
+    @SerialName("available_days") private val _availableDays: String? = null,
+    @SerialName("start_time") private val _startTime: String? = null,
+    @SerialName("end_time") private val _endTime: String? = null,
     @SerialName("about") private val _about: String? = null,
     @SerialName("bio") private val _bio: String? = null,
     @SerialName("image_url") private val _imageUrl: String? = null,
     @SerialName("profile_image_url") private val _profileImageUrl: String? = null,
-    @SerialName("available") val available: Boolean = true,
+    @SerialName("available") private val _available: Boolean? = null,
     @SerialName("created_at") val createdAt: String? = null,
     // Expanded/joined profile info
     val profile: Profile? = null
 ) {
+    val id: String
+        get() = _id ?: ""
+
+    val profileId: String
+        get() = _profileId?.takeIf { it.isNotBlank() } ?: _userId ?: ""
+
+    val userId: String
+        get() = _userId?.takeIf { it.isNotBlank() } ?: _profileId ?: ""
+
+    val specialization: String
+        get() = _specialization?.takeIf { it.isNotBlank() } ?: "General Medicine"
+
+    val qualification: String
+        get() = _qualification?.takeIf { it.isNotBlank() } ?: "MBBS, MD"
+
     val experience: String
-        get() = _experience ?: _experienceYears ?: "5+ Years"
+        get() = _experience?.takeIf { it.isNotBlank() } ?: _experienceYears?.takeIf { it.isNotBlank() } ?: "5+ Years"
 
     val hospital: String
-        get() = _hospital ?: _hospitalName ?: "Medicare Central Hospital"
+        get() = _hospital?.takeIf { it.isNotBlank() } ?: _hospitalName?.takeIf { it.isNotBlank() } ?: "Medicare Hospital"
 
     val hospitalName: String?
         get() = hospital
 
+    val department: String
+        get() = _department?.takeIf { it.isNotBlank() } ?: "General Department"
+
+    val consultationFee: Double?
+        get() = try {
+            when (_consultationFee) {
+                is JsonPrimitive -> _consultationFee.contentOrNull?.toDoubleOrNull()
+                else -> 500.0
+            }
+        } catch (_: Exception) {
+            500.0
+        }
+
+    val availableDays: String
+        get() = _availableDays?.takeIf { it.isNotBlank() } ?: "Mon, Tue, Wed, Thu, Fri"
+
+    val startTime: String
+        get() = _startTime?.takeIf { it.isNotBlank() } ?: "09:00 AM"
+
+    val endTime: String
+        get() = _endTime?.takeIf { it.isNotBlank() } ?: "05:00 PM"
+
+    val workingHours: String
+        get() = "$startTime - $endTime"
+
     val about: String?
-        get() = _about ?: _bio
+        get() = _about?.takeIf { it.isNotBlank() } ?: _bio?.takeIf { it.isNotBlank() } ?: "Experienced doctor dedicated to providing professional care."
 
     val bio: String?
         get() = about
@@ -57,8 +110,11 @@ data class Doctor(
     val imageUrl: String?
         get() = _imageUrl ?: _profileImageUrl
 
+    val available: Boolean
+        get() = _available ?: true
+
     val doctorName: String
-        get() = profile?.name ?: "Doctor"
+        get() = profile?.name?.takeIf { it.isNotBlank() } ?: "Dr. $specialization"
 }
 
 @Serializable

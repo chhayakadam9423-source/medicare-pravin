@@ -48,19 +48,26 @@ class DoctorListActivity : AppCompatActivity() {
             onDoctorClick = { doctor ->
                 val intent = Intent(this, DoctorDetailsActivity::class.java).apply {
                     putExtra("DOCTOR_ID", doctor.id)
-                    putExtra("DOCTOR_NAME", doctor.profile?.name)
+                    putExtra("DOCTOR_NAME", doctor.doctorName)
                     putExtra("DOCTOR_SPECIALIZATION", doctor.specialization)
                     putExtra("DOCTOR_QUALIFICATION", doctor.qualification)
                     putExtra("DOCTOR_EXPERIENCE", doctor.experience)
+                    putExtra("DOCTOR_HOSPITAL", doctor.hospital)
+                    putExtra("DOCTOR_DEPARTMENT", doctor.department)
+                    putExtra("DOCTOR_FEE", doctor.consultationFee ?: 500.0)
+                    putExtra("DOCTOR_DAYS", doctor.availableDays)
+                    putExtra("DOCTOR_HOURS", doctor.workingHours)
                     putExtra("DOCTOR_ABOUT", doctor.about)
+                    putExtra("DOCTOR_AVAILABLE", doctor.available)
                 }
                 startActivity(intent)
             },
             onBookClick = { doctor ->
                 val intent = Intent(this, BookAppointmentActivity::class.java).apply {
                     putExtra("DOCTOR_ID", doctor.id)
-                    putExtra("DOCTOR_NAME", doctor.profile?.name)
+                    putExtra("DOCTOR_NAME", doctor.doctorName)
                     putExtra("DOCTOR_SPECIALIZATION", doctor.specialization)
+                    putExtra("DOCTOR_FEE", doctor.consultationFee ?: 500.0)
                 }
                 startActivity(intent)
             }
@@ -128,13 +135,20 @@ class DoctorListActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        loadDoctors()
+    }
+
     private fun filterDoctors() {
         val query = binding.etDoctorSearch.text?.toString()?.trim().orEmpty().lowercase()
 
         val filtered = allDoctors.filter { doc ->
-            val nameMatches = (doc.profile?.name ?: "").lowercase().contains(query)
+            val nameMatches = (doc.profile?.name ?: "").lowercase().contains(query) || doc.doctorName.lowercase().contains(query)
             val specialtyMatches = doc.specialization.lowercase().contains(query)
-            val queryMatch = query.isEmpty() || nameMatches || specialtyMatches
+            val qualMatches = doc.qualification.lowercase().contains(query)
+            val hospMatches = doc.hospital.lowercase().contains(query)
+            val queryMatch = query.isEmpty() || nameMatches || specialtyMatches || qualMatches || hospMatches
 
             val categoryMatch = if (currentSpecialty == "All") {
                 true

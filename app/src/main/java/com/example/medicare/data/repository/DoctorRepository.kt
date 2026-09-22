@@ -12,12 +12,28 @@ class DoctorRepository {
 
     suspend fun getAllDoctors(): Result<List<Doctor>> = withContext(Dispatchers.IO) {
         try {
-            val doctors = db.from("doctors")
-                .select()
-                .decodeList<Doctor>()
+            // Live dynamic query equivalent to: SELECT * FROM public.doctors WHERE available = true
+            val doctors: List<Doctor> = try {
+                db.from("doctors")
+                    .select {
+                        filter {
+                            eq("available", true)
+                        }
+                    }
+                    .decodeList<Doctor>()
+            } catch (e: Exception) {
+                try {
+                    db.from("doctors")
+                        .select()
+                        .decodeList<Doctor>()
+                        .filter { it.available }
+                } catch (e2: Exception) {
+                    emptyList()
+                }
+            }
 
-            // Join profiles for each doctor
-            val profiles = try {
+            // Resolve profiles for each doctor using doctors.profile_id -> profiles.id
+            val profilesMap: Map<String, Profile> = try {
                 db.from("profiles")
                     .select()
                     .decodeList<Profile>()
@@ -27,8 +43,30 @@ class DoctorRepository {
             }
 
             val joined = doctors.map { doc ->
-                doc.copy(profile = profiles[doc.profileId])
+                val resolvedProfile = profilesMap[doc.profileId] ?: try {
+                    if (doc.profileId.isNotBlank()) {
+                        db.from("profiles")
+                            .select {
+                                filter { eq("id", doc.profileId) }
+                            }
+                            .decodeList<Profile>()
+                            .firstOrNull()
+                    } else null
+                } catch (_: Exception) {
+                    null
+                }
+
+                // If a profile lookup fails for one doctor, do NOT remove the doctor from the list.
+                // Show safe fallback values and continue displaying the doctor.
+                val safeProfile = resolvedProfile ?: Profile(
+                    id = doc.profileId,
+                    name = "Dr. ${doc.specialization.ifBlank { "Specialist" }}",
+                    role = "doctor"
+                )
+
+                doc.copy(profile = safeProfile)
             }
+
             Result.success(joined)
         } catch (e: Exception) {
             Result.failure(e)
@@ -37,34 +75,44 @@ class DoctorRepository {
 
     suspend fun getDoctorById(doctorId: String): Result<Doctor> = withContext(Dispatchers.IO) {
         try {
-            var doctor = db.from("doctors")
-                .select {
-                    filter {
-                        eq("id", doctorId)
-                    }
-                }.decodeSingleOrNull<Doctor>()
+            val doctors = try {
+                db.from("doctors")
+                    .select {
+                        filter {
+                            eq("id", doctorId)
+                        }
+                    }.decodeList<Doctor>()
+            } catch (_: Exception) { emptyList() }
 
-            if (doctor == null) {
-                doctor = db.from("doctors")
+            val doctor = doctors.firstOrNull() ?: try {
+                db.from("doctors")
                     .select {
                         filter {
                             eq("profile_id", doctorId)
                         }
-                    }.decodeSingleOrNull<Doctor>()
-            }
+                    }.decodeList<Doctor>().firstOrNull()
+            } catch (_: Exception) { null }
 
             if (doctor == null) {
                 return@withContext Result.failure(Exception("Doctor not found"))
             }
 
-            val profile = db.from("profiles")
-                .select {
-                    filter {
-                        eq("id", doctor.profileId)
-                    }
-                }.decodeSingleOrNull<Profile>()
+            val profile = try {
+                db.from("profiles")
+                    .select {
+                        filter {
+                            eq("id", doctor.profileId)
+                        }
+                    }.decodeList<Profile>().firstOrNull()
+            } catch (_: Exception) { null }
 
-            Result.success(doctor.copy(profile = profile))
+            val safeProfile = profile ?: Profile(
+                id = doctor.profileId,
+                name = "Dr. ${doctor.specialization.ifBlank { "Specialist" }}",
+                role = "doctor"
+            )
+
+            Result.success(doctor.copy(profile = safeProfile))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -72,21 +120,32 @@ class DoctorRepository {
 
     suspend fun getDoctorByProfileId(profileId: String): Result<Doctor> = withContext(Dispatchers.IO) {
         try {
-            val doctor = db.from("doctors")
+            val doctors = db.from("doctors")
                 .select {
                     filter {
                         eq("profile_id", profileId)
                     }
-                }.decodeSingle<Doctor>()
+                }.decodeList<Doctor>()
 
-            val profile = db.from("profiles")
-                .select {
-                    filter {
-                        eq("id", profileId)
-                    }
-                }.decodeSingleOrNull<Profile>()
+            val doctor = doctors.firstOrNull()
+                ?: return@withContext Result.failure(Exception("Doctor not found for profile: $profileId"))
 
-            Result.success(doctor.copy(profile = profile))
+            val profile = try {
+                db.from("profiles")
+                    .select {
+                        filter {
+                            eq("id", profileId)
+                        }
+                    }.decodeList<Profile>().firstOrNull()
+            } catch (_: Exception) { null }
+
+            val safeProfile = profile ?: Profile(
+                id = profileId,
+                name = "Dr. ${doctor.specialization.ifBlank { "Specialist" }}",
+                role = "doctor"
+            )
+
+            Result.success(doctor.copy(profile = safeProfile))
         } catch (e: Exception) {
             Result.failure(e)
         }

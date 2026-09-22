@@ -418,7 +418,8 @@ export default function App() {
   // Filtered Doctors
   const filteredDoctors = doctors.filter(doc => {
     const matchesSearch = (doc.profile?.name || '').toLowerCase().includes(doctorSearch.toLowerCase()) ||
-                          doc.specialization.toLowerCase().includes(doctorSearch.toLowerCase());
+                          doc.specialization.toLowerCase().includes(doctorSearch.toLowerCase()) ||
+                          doc.qualification.toLowerCase().includes(doctorSearch.toLowerCase());
     const matchesSpecialty = specialtyFilter === 'All' || doc.specialization.toLowerCase() === specialtyFilter.toLowerCase();
     return matchesSearch && matchesSpecialty;
   });
@@ -908,7 +909,7 @@ export default function App() {
                           </button>
                         </div>
                         <div className="space-y-2.5">
-                          {doctors.slice(0, 2).map((doc) => (
+                          {doctors.filter(d => d.available).map((doc) => (
                             <div 
                               key={doc.id}
                               className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between"
