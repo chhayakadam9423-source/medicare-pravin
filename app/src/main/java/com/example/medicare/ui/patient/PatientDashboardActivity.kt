@@ -149,8 +149,8 @@ class PatientDashboardActivity : AppCompatActivity() {
                     // Display all dynamically loaded available doctors from Supabase
                     doctorAdapter.updateData(list)
                 },
-                onFailure = {
-                    // Handled gracefully with fallback
+                onFailure = { error ->
+                    android.util.Log.e("PatientDashboard", "Error loading doctors from Supabase: ${error.message}", error)
                 }
             )
         }

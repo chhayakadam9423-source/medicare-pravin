@@ -56,7 +56,7 @@ class DoctorRepository {
             // 3. Self-healing check: Are there doctor profiles that have NO row in public.doctors?
             // (e.g., doctor registered earlier before doctor row was inserted)
             val existingDoctorProfileIds = doctors.map { it.profileId }.filter { it.isNotBlank() }.toSet()
-            val existingDoctorUserIds = doctors.map { it.userId }.filter { it.isNotBlank() }.toSet()
+            val existingDoctorUserIds = doctors.mapNotNull { it.userId }.filter { it.isNotBlank() }.toSet()
             val missingDoctorProfiles = doctorProfiles.filter { p ->
                 !existingDoctorProfileIds.contains(p.id) && !existingDoctorUserIds.contains(p.id)
             }
@@ -97,7 +97,7 @@ class DoctorRepository {
                             select()
                         }.decodeSingle<Doctor>()
                         healedDoctors.add(inserted.copy(profile = p))
-                        android.util.Log.i("DoctorRepository", "Auto-healed missing doctor for profile: ${p.name} (${p.id})")
+                        android.util.Log.i("DoctorRepository", "Auto-healed missing doctor for profile: ${p.displayName} (${p.id})")
                     } else if (existing.available) {
                         healedDoctors.add(existing.copy(profile = p))
                     }
@@ -110,9 +110,9 @@ class DoctorRepository {
             val allDoctors = (doctors + healedDoctors).distinctBy { it.id }
             val joined = allDoctors.map { doc ->
                 val resolvedProfile = profilesMap[doc.profileId]
-                    ?: profilesMap[doc.userId]
+                    ?: (doc.userId?.let { profilesMap[it] })
                     ?: try {
-                        val targetId = doc.profileId.ifBlank { doc.userId }
+                        val targetId = doc.profileId.ifBlank { doc.userId ?: "" }
                         if (targetId.isNotBlank()) {
                             db.from("profiles")
                                 .select {
@@ -121,7 +121,8 @@ class DoctorRepository {
                                 .decodeList<Profile>()
                                 .firstOrNull()
                         } else null
-                    } catch (_: Exception) {
+                    } catch (pe: Exception) {
+                        android.util.Log.e("DoctorRepository", "Profile fetch error for doc ${doc.id}: ${pe.message}", pe)
                         null
                     }
 
@@ -129,7 +130,7 @@ class DoctorRepository {
                 // Show safe fallback values and continue displaying the doctor.
                 val safeProfile = resolvedProfile ?: Profile(
                     id = doc.profileId,
-                    name = doc.name?.takeIf { it.isNotBlank() } ?: "Dr. ${doc.specialization.ifBlank { "Specialist" }}",
+                    name = "Dr. ${doc.specialization.ifBlank { "Specialist" }}",
                     role = "doctor"
                 )
 
@@ -174,7 +175,7 @@ class DoctorRepository {
                 return@withContext Result.failure(Exception("Doctor not found for ID: $doctorId"))
             }
 
-            val targetProfileId = doctor.profileId.ifBlank { doctor.userId }
+            val targetProfileId = doctor.profileId.ifBlank { doctor.userId ?: "" }
             val profile = try {
                 db.from("profiles")
                     .select {

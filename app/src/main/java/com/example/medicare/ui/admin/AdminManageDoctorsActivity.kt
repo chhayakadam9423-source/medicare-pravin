@@ -68,8 +68,8 @@ class AdminManageDoctorsActivity : AppCompatActivity() {
                 onSuccess = { list ->
                     doctorAdapter.updateData(list)
                 },
-                onFailure = {
-                    // Safe handling
+                onFailure = { error ->
+                    android.util.Log.e("AdminManageDoctorsActivity", "Error loading doctors: ${error.message}", error)
                 }
             )
         }

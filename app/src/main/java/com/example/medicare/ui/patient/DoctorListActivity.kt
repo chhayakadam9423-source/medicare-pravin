@@ -128,7 +128,8 @@ class DoctorListActivity : AppCompatActivity() {
                     allDoctors = list
                     filterDoctors()
                 },
-                onFailure = {
+                onFailure = { error ->
+                    android.util.Log.e("DoctorListActivity", "Error loading doctors: ${error.message}", error)
                     filterDoctors()
                 }
             )

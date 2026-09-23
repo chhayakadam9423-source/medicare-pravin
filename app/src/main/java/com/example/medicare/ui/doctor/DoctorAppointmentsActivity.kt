@@ -74,8 +74,8 @@ class DoctorAppointmentsActivity : AppCompatActivity() {
                 onSuccess = { list ->
                     appointmentAdapter.updateData(list)
                 },
-                onFailure = {
-                    // Safe handling
+                onFailure = { error ->
+                    android.util.Log.e("DoctorAppointmentsActivity", "Error loading appointments: ${error.message}", error)
                 }
             )
         }

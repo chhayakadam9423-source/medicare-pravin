@@ -317,7 +317,20 @@ class AuthRepository {
                         db.from("doctors").insert(fallbackMap)
                         android.util.Log.i("AuthRepository", "Successfully created doctor record with fallback schema for profile: $profileId")
                     } catch (e2: Exception) {
-                        android.util.Log.e("AuthRepository", "Fallback doctor insert also failed: ${e2.message}", e2)
+                        android.util.Log.e("AuthRepository", "Fallback doctor insert also failed: ${e2.message}. Trying bare minimum.", e2)
+                        try {
+                            val bareMinimum = mapOf(
+                                "profile_id" to profileId,
+                                "specialization" to spec,
+                                "qualification" to qual,
+                                "experience_years" to exp,
+                                "available" to true
+                            )
+                            db.from("doctors").insert(bareMinimum)
+                            android.util.Log.i("AuthRepository", "Successfully created doctor record with bare minimum schema for profile: $profileId")
+                        } catch (e3: Exception) {
+                            android.util.Log.e("AuthRepository", "Bare minimum doctor insert failed: ${e3.message}", e3)
+                        }
                     }
                 }
             }

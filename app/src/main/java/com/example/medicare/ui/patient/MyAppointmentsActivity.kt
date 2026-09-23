@@ -87,7 +87,8 @@ class MyAppointmentsActivity : AppCompatActivity() {
                         binding.rvMyAppointments.visibility = View.VISIBLE
                     }
                 },
-                onFailure = {
+                onFailure = { error ->
+                    android.util.Log.e("MyAppointmentsActivity", "Error loading appointments: ${error.message}", error)
                     binding.llEmptyAppointments.visibility = View.VISIBLE
                 }
             )

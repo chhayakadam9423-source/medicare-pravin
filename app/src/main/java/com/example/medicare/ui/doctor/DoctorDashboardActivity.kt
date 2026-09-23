@@ -109,8 +109,8 @@ class DoctorDashboardActivity : AppCompatActivity() {
                     // Display recent
                     appointmentAdapter.updateData(list)
                 },
-                onFailure = {
-                    // Safe handling
+                onFailure = { error ->
+                    android.util.Log.e("DoctorDashboard", "Error loading appointments: ${error.message}", error)
                 }
             )
         }

@@ -204,14 +204,14 @@ class AppointmentRepository {
 
             val enriched = list.map { apt ->
                 val doctor = (doctorsMap[apt.doctorId] ?: doctorsMap.values.find { it.profileId == apt.doctorId || it.userId == apt.doctorId })?.let { d ->
-                    d.copy(profile = profilesMap[d.profileId] ?: profilesMap[d.userId])
+                    d.copy(profile = profilesMap[d.profileId] ?: (d.userId?.let { profilesMap[it] }))
                 } ?: run {
                     val p = profilesMap[apt.doctorId]
                     p?.let {
                         Doctor(
                             id = apt.doctorId,
                             profileId = it.id,
-                            specialization = "Specialist",
+                            rawSpecialization = "Specialist",
                             profile = it
                         )
                     }
@@ -266,7 +266,7 @@ class AppointmentRepository {
 
             val enriched = list.map { apt ->
                 val patient = (patientsMap[apt.patientId] ?: patientsMap.values.find { it.profileId == apt.patientId || it.userId == apt.patientId })?.let { p ->
-                    p.copy(profile = profilesMap[p.profileId] ?: profilesMap[p.userId])
+                    p.copy(profile = profilesMap[p.profileId] ?: (p.userId?.let { profilesMap[it] }))
                 } ?: run {
                     val p = profilesMap[apt.patientId]
                     p?.let {
@@ -296,10 +296,10 @@ class AppointmentRepository {
 
             val enriched = list.map { apt ->
                 val doctor = (doctorsMap[apt.doctorId] ?: doctorsMap.values.find { it.profileId == apt.doctorId || it.userId == apt.doctorId })?.let { d ->
-                    d.copy(profile = profilesMap[d.profileId] ?: profilesMap[d.userId])
+                    d.copy(profile = profilesMap[d.profileId] ?: (d.userId?.let { profilesMap[it] }))
                 }
                 val patient = (patientsMap[apt.patientId] ?: patientsMap.values.find { it.profileId == apt.patientId || it.userId == apt.patientId })?.let { p ->
-                    p.copy(profile = profilesMap[p.profileId] ?: profilesMap[p.userId])
+                    p.copy(profile = profilesMap[p.profileId] ?: (p.userId?.let { profilesMap[it] }))
                 }
                 apt.copy(doctor = doctor, patient = patient)
             }

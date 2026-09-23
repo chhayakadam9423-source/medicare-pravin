@@ -201,6 +201,16 @@ WITH CHECK (
     OR public.current_user_role() = 'admin'
 );
 
+CREATE POLICY "Doctors can insert their own doctor record"
+ON public.doctors FOR INSERT
+TO authenticated
+WITH CHECK (profile_id = auth.uid() OR user_id = auth.uid());
+
+CREATE POLICY "Patients can insert their own patient record"
+ON public.patients FOR INSERT
+TO authenticated
+WITH CHECK (profile_id = auth.uid() OR user_id = auth.uid());
+
 -- ============================================================
 -- TRIGGER: Automatically create profile on Supabase auth signup
 -- ============================================================
@@ -208,209 +218,41 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     v_role TEXT;
-    v_dob_raw TEXT;
-    v_dob DATE := NULL;
-    v_gender_raw TEXT;
-    v_gender TEXT;
-    v_blood_raw TEXT;
-    v_blood TEXT;
-    v_exp TEXT;
-    v_hospital TEXT;
-    v_about TEXT;
-    v_fee_raw TEXT;
-    v_fee NUMERIC := NULL;
+    v_name TEXT;
+    v_phone TEXT;
 BEGIN
-    -- 1. Normalize and validate user role
+    -- Extract and normalize role (patient, doctor, admin)
     v_role := LOWER(TRIM(COALESCE(new.raw_user_meta_data->>'role', 'patient')));
     IF v_role NOT IN ('patient', 'doctor', 'admin') THEN
         v_role := 'patient';
     END IF;
 
-    -- 2. Safely parse and sanitize date of birth
-    v_dob_raw := TRIM(COALESCE(new.raw_user_meta_data->>'date_of_birth', new.raw_user_meta_data->>'dob', ''));
-    IF v_dob_raw ~ '^\d{4}-\d{2}-\d{2}$' THEN
-        BEGIN
-            v_dob := v_dob_raw::DATE;
-        EXCEPTION WHEN OTHERS THEN
-            v_dob := NULL;
-        END;
-    END IF;
+    -- Extract name and phone
+    v_name := COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'name'), ''), 'User');
+    v_phone := COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'phone'), ''), '');
 
-    -- 3. Safely normalize gender
-    v_gender_raw := LOWER(TRIM(COALESCE(new.raw_user_meta_data->>'gender', '')));
-    v_gender := CASE
-        WHEN v_gender_raw IN ('male', 'm') THEN 'Male'
-        WHEN v_gender_raw IN ('female', 'f') THEN 'Female'
-        ELSE 'Other'
-    END;
-
-    -- 4. Safely normalize blood group
-    v_blood_raw := UPPER(TRIM(COALESCE(new.raw_user_meta_data->>'blood_group', '')));
-    v_blood := CASE
-        WHEN v_blood_raw IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-') THEN v_blood_raw
-        ELSE 'O+'
-    END;
-
-    -- 5. Clean conflicting duplicate profiles from aborted/interrupted attempts
+    -- Clean conflicting duplicate profiles from aborted/interrupted attempts
     DELETE FROM public.profiles WHERE email = new.email AND id != new.id;
 
-    -- 6. Insert or update the public.profiles record
-    BEGIN
-        INSERT INTO public.profiles (id, name, email, phone, role)
-        VALUES (
-            new.id,
-            COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'name'), ''), 'User'),
-            new.email,
-            COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'phone'), ''), ''),
-            v_role
-        )
-        ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            email = EXCLUDED.email,
-            phone = EXCLUDED.phone,
-            role = EXCLUDED.role;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE WARNING 'handle_new_user: error inserting profile for %: %', new.id, SQLERRM;
-    END;
+    -- The handle_new_user trigger should only create/update the profiles row.
+    -- The application AuthRepository creates the doctor/patient record.
+    INSERT INTO public.profiles (id, name, email, phone, role)
+    VALUES (
+        new.id,
+        v_name,
+        new.email,
+        v_phone,
+        v_role
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        email = EXCLUDED.email,
+        phone = EXCLUDED.phone,
+        role = EXCLUDED.role;
 
-    -- 7. Handle PATIENT record creation
-    IF v_role = 'patient' THEN
-        BEGIN
-            IF EXISTS (SELECT 1 FROM public.patients WHERE profile_id = new.id OR user_id = new.id) THEN
-                UPDATE public.patients SET
-                    date_of_birth = COALESCE(v_dob, date_of_birth),
-                    dob = COALESCE(v_dob, dob),
-                    gender = COALESCE(v_gender, gender),
-                    blood_group = COALESCE(v_blood, blood_group),
-                    address = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'address'), ''), address),
-                    emergency_contact = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'emergency_contact'), ''), emergency_contact)
-                WHERE profile_id = new.id OR user_id = new.id;
-            ELSE
-                INSERT INTO public.patients (
-                    profile_id,
-                    user_id,
-                    date_of_birth,
-                    dob,
-                    gender,
-                    blood_group,
-                    address,
-                    emergency_contact
-                )
-                VALUES (
-                    new.id,
-                    new.id,
-                    v_dob,
-                    v_dob,
-                    v_gender,
-                    v_blood,
-                    COALESCE(new.raw_user_meta_data->>'address', ''),
-                    COALESCE(new.raw_user_meta_data->>'emergency_contact', '')
-                );
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING 'handle_new_user: error inserting patient for %: %', new.id, SQLERRM;
-        END;
-    END IF;
-
-    -- 8. Handle DOCTOR record creation
-    IF v_role = 'doctor' THEN
-        BEGIN
-            -- Extract doctor fields with fallbacks
-            v_exp := COALESCE(
-                NULLIF(TRIM(new.raw_user_meta_data->>'experience'), ''),
-                NULLIF(TRIM(new.raw_user_meta_data->>'experience_years'), ''),
-                '5+ Years'
-            );
-            v_hospital := COALESCE(
-                NULLIF(TRIM(new.raw_user_meta_data->>'hospital_name'), ''),
-                NULLIF(TRIM(new.raw_user_meta_data->>'hospital'), ''),
-                'Medicare General Hospital'
-            );
-            v_about := COALESCE(
-                NULLIF(TRIM(new.raw_user_meta_data->>'bio'), ''),
-                NULLIF(TRIM(new.raw_user_meta_data->>'about'), ''),
-                ''
-            );
-
-            -- Clean fee input
-            v_fee_raw := regexp_replace(
-                COALESCE(new.raw_user_meta_data->>'consultation_fee', ''),
-                '[^0-9\.]',
-                '',
-                'g'
-            );
-            IF v_fee_raw ~ '^[0-9]+(\.[0-9]+)?$' THEN
-                v_fee := v_fee_raw::NUMERIC;
-            ELSE
-                v_fee := 500.00;
-            END IF;
-
-            IF EXISTS (SELECT 1 FROM public.doctors WHERE profile_id = new.id OR user_id = new.id) THEN
-                UPDATE public.doctors SET
-                    specialization = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'specialization'), ''), specialization),
-                    qualification = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'qualification'), ''), qualification),
-                    experience_years = COALESCE(v_exp, experience_years),
-                    experience = COALESCE(v_exp, experience),
-                    license_number = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'license_number'), ''), license_number),
-                    hospital_name = COALESCE(v_hospital, hospital_name),
-                    hospital = COALESCE(v_hospital, hospital),
-                    department = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'department'), ''), department),
-                    consultation_fee = COALESCE(v_fee, consultation_fee),
-                    available_days = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'available_days'), ''), available_days),
-                    start_time = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'start_time'), ''), start_time),
-                    end_time = COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'end_time'), ''), end_time),
-                    bio = COALESCE(v_about, bio),
-                    about = COALESCE(v_about, about)
-                WHERE profile_id = new.id OR user_id = new.id;
-            ELSE
-                INSERT INTO public.doctors (
-                    profile_id,
-                    user_id,
-                    specialization,
-                    qualification,
-                    experience_years,
-                    experience,
-                    license_number,
-                    hospital_name,
-                    hospital,
-                    department,
-                    consultation_fee,
-                    available_days,
-                    start_time,
-                    end_time,
-                    bio,
-                    about,
-                    profile_image_url,
-                    image_url,
-                    available
-                )
-                VALUES (
-                    new.id,
-                    new.id,
-                    COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'specialization'), ''), 'General Medicine'),
-                    COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'qualification'), ''), 'MBBS, MD'),
-                    v_exp,
-                    v_exp,
-                    COALESCE(new.raw_user_meta_data->>'license_number', ''),
-                    v_hospital,
-                    v_hospital,
-                    COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'department'), ''), 'General Outpatient'),
-                    v_fee,
-                    COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'available_days'), ''), 'Mon,Tue,Wed,Thu,Fri'),
-                    COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'start_time'), ''), '09:00 AM'),
-                    COALESCE(NULLIF(TRIM(new.raw_user_meta_data->>'end_time'), ''), '05:00 PM'),
-                    v_about,
-                    v_about,
-                    COALESCE(new.raw_user_meta_data->>'profile_image_url', ''),
-                    COALESCE(new.raw_user_meta_data->>'image_url', ''),
-                    true
-                );
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING 'handle_new_user: error inserting doctor for %: %', new.id, SQLERRM;
-        END;
-    END IF;
-
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user: error inserting profile for %: %', new.id, SQLERRM;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
