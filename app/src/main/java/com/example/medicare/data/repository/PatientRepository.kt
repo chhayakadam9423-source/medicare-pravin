@@ -61,7 +61,8 @@ class PatientRepository {
                 }
             }
 
-            val actualProfileId = patient.profileId.ifBlank { profileId }
+            val currentPatient = patient ?: Patient(id = profileId, profileId = profileId, userId = profileId)
+            val actualProfileId = currentPatient.profileId.ifBlank { profileId }
             val profile = try {
                 db.from("profiles").select {
                     filter { eq("id", actualProfileId) }
@@ -70,7 +71,7 @@ class PatientRepository {
                 null
             }
 
-            Result.success(patient.copy(profile = profile))
+            Result.success(currentPatient.copy(profile = profile))
         } catch (e: Exception) {
             Result.failure(e)
         }

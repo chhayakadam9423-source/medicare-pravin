@@ -6,6 +6,8 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.medicare.data.repository.AuthRepository
+import com.example.medicare.data.repository.DoctorRepository
+import com.example.medicare.data.repository.PatientRepository
 import com.example.medicare.databinding.ActivityLoginBinding
 import com.example.medicare.ui.admin.AdminDashboardActivity
 import com.example.medicare.ui.doctor.DoctorDashboardActivity
@@ -87,6 +89,19 @@ class LoginActivity : AppCompatActivity() {
                     // Save Session
                     sessionManager.saveUserSession(profile)
 
+                    // Resolve and store doctorId or patientId for instant fast dashboard queries
+                    if (profile.role.equals("doctor", ignoreCase = true)) {
+                        try {
+                            val docResult = DoctorRepository().getDoctorByProfileId(profile.id)
+                            docResult.getOrNull()?.id?.let { sessionManager.saveDoctorId(it) }
+                        } catch (_: Exception) {}
+                    } else if (profile.role.equals("patient", ignoreCase = true)) {
+                        try {
+                            val patResult = PatientRepository().getPatientByProfileId(profile.id)
+                            patResult.getOrNull()?.id?.let { sessionManager.savePatientId(it) }
+                        } catch (_: Exception) {}
+                    }
+
                     // Navigate based on role
                     navigateToDashboard(profile.role)
                 },
@@ -94,7 +109,7 @@ class LoginActivity : AppCompatActivity() {
                     DialogUtils.showError(
                         this@LoginActivity,
                         title = "Login Failed",
-                        message = "Invalid mobile number or password. Please try again."
+                        message = error.localizedMessage ?: "Invalid mobile number or password. Please try again."
                     )
                 }
             )

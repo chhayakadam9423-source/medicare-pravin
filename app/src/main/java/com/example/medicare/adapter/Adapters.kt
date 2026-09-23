@@ -167,12 +167,14 @@ class DoctorAppointmentAdapter(
     inner class DoctorAppointmentViewHolder(val binding: ItemDoctorAppointmentBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(apt: Appointment) {
             val patientName = apt.patient?.profile?.name ?: "Patient"
+            val patientPhone = apt.patient?.profile?.phone?.takeIf { it.isNotBlank() }
             val gender = apt.patient?.gender ?: "Unknown"
             val blood = apt.patient?.bloodGroup ?: "N/A"
 
             binding.tvDocAptPatientName.text = patientName
             binding.tvDocPatientInitial.text = patientName.take(1).uppercase()
-            binding.tvDocAptPatientDetails.text = "$gender • Blood: $blood"
+            val phoneText = if (patientPhone != null) " • 📞 $patientPhone" else ""
+            binding.tvDocAptPatientDetails.text = "$gender • Blood: $blood$phoneText"
             binding.tvDocAptDateTime.text = "📅 ${apt.appointmentDate} • ⏰ ${apt.appointmentTime}"
             binding.tvDocAptReason.text = "Reason: ${apt.reason}"
 

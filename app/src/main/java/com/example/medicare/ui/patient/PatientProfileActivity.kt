@@ -147,11 +147,14 @@ class PatientProfileActivity : AppCompatActivity() {
                     result.fold(
                         onSuccess = {
                             if (name.isNotBlank()) {
-                                sessionManager.saveSession(
-                                    userId = profileId,
-                                    name = name,
-                                    phone = sessionManager.getUserPhone().orEmpty(),
-                                    role = sessionManager.getUserRole().orEmpty()
+                                sessionManager.saveUserSession(
+                                    com.example.medicare.data.model.Profile(
+                                        id = profileId,
+                                        name = name,
+                                        email = sessionManager.getUserEmail(),
+                                        phone = sessionManager.getUserPhone(),
+                                        role = sessionManager.getUserRole()
+                                    )
                                 )
                             }
                             DialogUtils.showSuccess(

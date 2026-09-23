@@ -59,10 +59,9 @@ data class Doctor(
 @Serializable
 data class Patient(
     @SerialName("id") val id: String = "",
-    @SerialName("profile_id") private val _profileId: String? = null,
-    @SerialName("user_id") private val _userId: String? = null,
-    @SerialName("dob") private val _dob: String? = null,
-    @SerialName("date_of_birth") private val _dateOfBirth: String? = null,
+    @SerialName("profile_id") val profileId: String = "",
+    @SerialName("user_id") val userId: String = "",
+    @SerialName("dob") val dob: String? = null,
     @SerialName("gender") val gender: String? = null,
     @SerialName("blood_group") val bloodGroup: String? = null,
     @SerialName("address") val address: String? = null,
@@ -72,17 +71,8 @@ data class Patient(
     // Expanded/joined profile info
     val profile: Profile? = null
 ) {
-    val profileId: String
-        get() = _profileId ?: _userId ?: ""
-
-    val userId: String
-        get() = _userId ?: _profileId ?: ""
-
     val dateOfBirth: String?
-        get() = _dob ?: _dateOfBirth
-
-    val dob: String?
-        get() = _dob ?: _dateOfBirth
+        get() = dob
 
     val patientName: String
         get() = profile?.name ?: "Patient"

@@ -35,15 +35,16 @@ class BookAppointmentActivity : AppCompatActivity() {
 
         sessionManager = SessionManager(this)
 
-        doctorId = intent.getStringExtra("DOCTOR_ID") ?: "doc-1"
-        doctorName = intent.getStringExtra("DOCTOR_NAME") ?: "Dr. Sarah Jenkins"
-        val doctorSpecialty = intent.getStringExtra("DOCTOR_SPECIALIZATION") ?: "Cardiologist"
+        doctorId = intent.getStringExtra("DOCTOR_ID").orEmpty()
+        doctorName = intent.getStringExtra("DOCTOR_NAME") ?: "Doctor"
+        val doctorSpecialty = intent.getStringExtra("DOCTOR_SPECIALIZATION") ?: "Specialist"
+        val doctorFee = intent.getDoubleExtra("DOCTOR_FEE", 500.0)
 
         binding.toolbarBookAppointment.setNavigationOnClickListener { finish() }
 
         binding.tvBookDocName.text = doctorName
-        binding.tvBookDocSpecialty.text = doctorSpecialty
-        binding.tvBookDocInitial.text = doctorName.take(2).uppercase()
+        binding.tvBookDocSpecialty.text = "$doctorSpecialty • Fee: ₹${doctorFee.toInt()}"
+        binding.tvBookDocInitial.text = doctorName.replace("Dr.", "").trim().take(2).uppercase().ifBlank { "DR" }
 
         // Default Date (Tomorrow)
         val calendar = Calendar.getInstance()
@@ -77,6 +78,8 @@ class BookAppointmentActivity : AppCompatActivity() {
 
         // Confirm Booking
         AnimationUtils.applyPressAnimation(binding.btnConfirmBooking) {
+            if (!binding.btnConfirmBooking.isEnabled) return@applyPressAnimation
+
             val reason = binding.etBookReason.text?.toString()?.trim().orEmpty()
 
             if (reason.isEmpty()) {
@@ -85,7 +88,27 @@ class BookAppointmentActivity : AppCompatActivity() {
             }
             binding.tilBookReason.error = null
 
-            val patientId = sessionManager.getUserId() ?: "patient-user"
+            val patientId = sessionManager.getPatientId()
+                ?: sessionManager.getUserId()
+                ?: ""
+
+            if (patientId.isBlank()) {
+                DialogUtils.showError(
+                    this,
+                    title = "Authentication Required",
+                    message = "Please sign in to schedule an appointment."
+                )
+                return@applyPressAnimation
+            }
+
+            if (doctorId.isBlank()) {
+                DialogUtils.showError(
+                    this,
+                    title = "Doctor Selection Error",
+                    message = "No doctor was selected for this consultation."
+                )
+                return@applyPressAnimation
+            }
 
             performBooking(patientId, doctorId, selectedDate, selectedTime, reason)
         }
@@ -136,7 +159,7 @@ class BookAppointmentActivity : AppCompatActivity() {
             setLoading(false)
 
             result.fold(
-                onSuccess = { appointment ->
+                onSuccess = { _ ->
                     DialogUtils.showSuccess(
                         this@BookAppointmentActivity,
                         title = "Appointment Booked!",

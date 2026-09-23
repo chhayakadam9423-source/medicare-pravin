@@ -101,25 +101,44 @@ class AuthRepository {
             val uid = auth.currentUserOrNull()?.id
                 ?: return@withContext Result.failure(Exception("Registration completed, please sign in with your mobile number and password."))
 
-            // Fetch profile created by database trigger
-            val profile = try {
+            // 1. Ensure public.profiles record exists
+            var profile = try {
                 db.from("profiles")
                     .select {
                         filter {
                             eq("id", uid)
                         }
                     }.decodeSingleOrNull<Profile>()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("AuthRepository", "Error fetching profile during signUp: ${e.message}", e)
                 null
             }
 
-            if (profile != null) {
-                Result.success(profile)
-            } else {
-                // Fallback profile if trigger has a slight execution latency
-                val fallback = Profile(id = uid, name = name, email = null, phone = cleanPhone, role = role)
-                Result.success(fallback)
+            if (profile == null) {
+                val newProfile = Profile(
+                    id = uid,
+                    name = name,
+                    email = syntheticEmail,
+                    phone = cleanPhone,
+                    role = role
+                )
+                try {
+                    db.from("profiles").insert(newProfile)
+                    profile = newProfile
+                } catch (e: Exception) {
+                    android.util.Log.e("AuthRepository", "Error inserting profile during signUp: ${e.message}", e)
+                    profile = newProfile
+                }
             }
+
+            // 2. Ensure public.doctors or public.patients record exists
+            if (role.equals("doctor", ignoreCase = true)) {
+                ensureDoctorRecordExists(uid, name, extraData)
+            } else if (role.equals("patient", ignoreCase = true)) {
+                ensurePatientRecordExists(uid, extraData)
+            }
+
+            Result.success(profile ?: Profile(id = uid, name = name, email = syntheticEmail, phone = cleanPhone, role = role))
         } catch (e: Exception) {
             val detailedMsg = extractAndLogAuthError(e, "signUp")
             Result.failure(Exception(detailedMsg, e))
@@ -142,30 +161,230 @@ class AuthRepository {
             val uid = auth.currentUserOrNull()?.id
                 ?: return@withContext Result.failure(Exception("Login failed: no user session"))
 
-            val profile = try {
+            var profile = try {
                 db.from("profiles")
                     .select {
                         filter {
                             eq("id", uid)
                         }
                     }.decodeSingleOrNull<Profile>()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("AuthRepository", "Error fetching profile during signIn: ${e.message}", e)
                 null
             }
 
-            if (profile != null) {
-                Result.success(profile)
-            } else {
+            if (profile == null) {
                 // Read from user metadata if profile query failed
                 val metadata = auth.currentUserOrNull()?.userMetadata
                 val name = metadata?.get("name")?.toString()?.trim('"') ?: "User"
                 val role = metadata?.get("role")?.toString()?.trim('"') ?: "patient"
-                val fallback = Profile(id = uid, name = name, email = null, phone = cleanPhone, role = role)
-                Result.success(fallback)
+                val fallback = Profile(id = uid, name = name, email = syntheticEmail, phone = cleanPhone, role = role)
+                try {
+                    db.from("profiles").insert(fallback)
+                } catch (_: Exception) {}
+                profile = fallback
             }
+
+            val effectiveRole = profile.role.lowercase()
+            if (effectiveRole == "doctor") {
+                ensureDoctorRecordExists(uid, profile.name, emptyMap())
+            } else if (effectiveRole == "patient") {
+                ensurePatientRecordExists(uid, emptyMap())
+            }
+
+            Result.success(profile)
         } catch (e: Exception) {
             val detailedMsg = extractAndLogAuthError(e, "signIn")
             Result.failure(Exception(detailedMsg, e))
+        }
+    }
+
+    /**
+     * Guarantees that a row in public.doctors exists for the given doctor profile_id.
+     * Prevents duplicate doctor records: updates if already exists, inserts if missing.
+     */
+    suspend fun ensureDoctorRecordExists(
+        profileId: String,
+        doctorName: String,
+        extraData: Map<String, String>
+    ): Unit = withContext(Dispatchers.IO) {
+        try {
+            // Check if record already exists in doctors
+            val existing = try {
+                db.from("doctors").select {
+                    filter {
+                        or {
+                            eq("profile_id", profileId)
+                            eq("user_id", profileId)
+                        }
+                    }
+                }.decodeList<com.example.medicare.data.model.Doctor>().firstOrNull()
+            } catch (e: Exception) {
+                android.util.Log.e("AuthRepository", "Checking existing doctor error: ${e.message}", e)
+                null
+            }
+
+            val spec = extraData["specialization"]?.ifBlank { "General Medicine" } ?: "General Medicine"
+            val qual = extraData["qualification"]?.ifBlank { "MBBS, MD" } ?: "MBBS, MD"
+            val exp = extraData["experience"]?.ifBlank { "5+ Years" } ?: "5+ Years"
+            val hosp = extraData["hospital_name"]?.ifBlank { "Medicare Central Hospital" } ?: "Medicare Central Hospital"
+            val dept = extraData["department"]?.ifBlank { spec } ?: spec
+            val fee = extraData["consultation_fee"]?.toDoubleOrNull() ?: 500.0
+            val days = extraData["available_days"]?.ifBlank { "Mon,Tue,Wed,Thu,Fri" } ?: "Mon,Tue,Wed,Thu,Fri"
+            val startTime = extraData["start_time"]?.ifBlank { "09:00 AM" } ?: "09:00 AM"
+            val endTime = extraData["end_time"]?.ifBlank { "05:00 PM" } ?: "05:00 PM"
+            val about = extraData["about"]?.ifBlank { "Experienced clinician dedicated to excellence in patient treatment." }
+                ?: "Experienced clinician dedicated to excellence in patient treatment."
+            val img = extraData["profile_image_url"].orEmpty()
+            val lic = extraData["license_number"].orEmpty()
+
+            if (existing != null) {
+                // Doctor already exists. Update only if new data was explicitly provided.
+                if (extraData.isNotEmpty()) {
+                    try {
+                        db.from("doctors").update(
+                            mapOf(
+                                "name" to doctorName,
+                                "specialization" to spec,
+                                "qualification" to qual,
+                                "experience" to exp,
+                                "experience_years" to exp,
+                                "hospital" to hosp,
+                                "hospital_name" to hosp,
+                                "department" to dept,
+                                "consultation_fee" to fee,
+                                "available_days" to days,
+                                "start_time" to startTime,
+                                "end_time" to endTime,
+                                "about" to about,
+                                "bio" to about,
+                                "available" to true
+                            )
+                        ) {
+                            filter { eq("id", existing.id) }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("AuthRepository", "Error updating doctor record: ${e.message}", e)
+                    }
+                }
+            } else {
+                // Doctor does not exist: insert new record
+                val docMap = mutableMapOf<String, Any>(
+                    "profile_id" to profileId,
+                    "user_id" to profileId,
+                    "name" to doctorName,
+                    "specialization" to spec,
+                    "qualification" to qual,
+                    "experience" to exp,
+                    "experience_years" to exp,
+                    "hospital" to hosp,
+                    "hospital_name" to hosp,
+                    "department" to dept,
+                    "consultation_fee" to fee,
+                    "available_days" to days,
+                    "start_time" to startTime,
+                    "end_time" to endTime,
+                    "about" to about,
+                    "bio" to about,
+                    "image_url" to img,
+                    "profile_image_url" to img,
+                    "available" to true
+                )
+                if (lic.isNotBlank()) {
+                    docMap["license_number"] = lic
+                }
+
+                try {
+                    db.from("doctors").insert(docMap)
+                    android.util.Log.i("AuthRepository", "Successfully created doctor record for profile: $profileId")
+                } catch (e: Exception) {
+                    android.util.Log.e("AuthRepository", "Error inserting doctor record with full fields: ${e.message}. Trying standard schema fallback.", e)
+                    try {
+                        val fallbackMap = mapOf(
+                            "profile_id" to profileId,
+                            "specialization" to spec,
+                            "qualification" to qual,
+                            "experience_years" to exp,
+                            "hospital_name" to hosp,
+                            "department" to dept,
+                            "consultation_fee" to fee,
+                            "available_days" to days,
+                            "start_time" to startTime,
+                            "end_time" to endTime,
+                            "bio" to about,
+                            "available" to true
+                        )
+                        db.from("doctors").insert(fallbackMap)
+                        android.util.Log.i("AuthRepository", "Successfully created doctor record with fallback schema for profile: $profileId")
+                    } catch (e2: Exception) {
+                        android.util.Log.e("AuthRepository", "Fallback doctor insert also failed: ${e2.message}", e2)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthRepository", "ensureDoctorRecordExists failed: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Guarantees that a row in public.patients exists for the given patient profile_id.
+     */
+    suspend fun ensurePatientRecordExists(
+        profileId: String,
+        extraData: Map<String, String>
+    ): Unit = withContext(Dispatchers.IO) {
+        try {
+            val existing = try {
+                db.from("patients").select {
+                    filter {
+                        or {
+                            eq("profile_id", profileId)
+                            eq("user_id", profileId)
+                        }
+                    }
+                }.decodeList<com.example.medicare.data.model.Patient>().firstOrNull()
+            } catch (_: Exception) { null }
+
+            if (existing == null) {
+                val dob = extraData["date_of_birth"]?.ifBlank { "1995-01-01" } ?: "1995-01-01"
+                val gender = extraData["gender"]?.ifBlank { "Other" } ?: "Other"
+                val blood = extraData["blood_group"]?.ifBlank { "O+" } ?: "O+"
+                val addr = extraData["address"].orEmpty()
+                val emergency = extraData["emergency_contact"].orEmpty()
+
+                try {
+                    db.from("patients").insert(
+                        mapOf(
+                            "profile_id" to profileId,
+                            "user_id" to profileId,
+                            "date_of_birth" to dob,
+                            "dob" to dob,
+                            "gender" to gender,
+                            "blood_group" to blood,
+                            "address" to addr,
+                            "emergency_contact" to emergency
+                        )
+                    )
+                    android.util.Log.i("AuthRepository", "Successfully created patient record for profile: $profileId")
+                } catch (e: Exception) {
+                    try {
+                        db.from("patients").insert(
+                            mapOf(
+                                "profile_id" to profileId,
+                                "date_of_birth" to dob,
+                                "gender" to gender,
+                                "blood_group" to blood,
+                                "address" to addr,
+                                "emergency_contact" to emergency
+                            )
+                        )
+                    } catch (e2: Exception) {
+                        android.util.Log.e("AuthRepository", "Failed to create patient record: ${e2.message}", e2)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthRepository", "ensurePatientRecordExists failed: ${e.message}", e)
         }
     }
 

@@ -77,13 +77,46 @@ class AdminManageDoctorsActivity : AppCompatActivity() {
 
     private fun showDoctorOptions(doctor: Doctor) {
         val name = doctor.profile?.name ?: "Doctor"
-        DialogUtils.showConfirmation(
-            this,
-            title = "Manage $name",
-            message = "Specialization: ${doctor.specialization}\nQualification: ${doctor.qualification}\n\nWould you like to toggle availability or remove this physician?"
-        ) {
-            // Admin action
-            deleteDoctor(doctor.id)
+        val currentStatus = if (doctor.available) "Available" else "Unavailable"
+        val actionText = if (doctor.available) "Set to Unavailable" else "Set to Available"
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Manage $name")
+            .setMessage("Specialization: ${doctor.specialization}\nStatus: $currentStatus\n\nChoose an action:")
+            .setPositiveButton(actionText) { _, _ ->
+                toggleDoctorAvailability(doctor.id, !doctor.available)
+            }
+            .setNegativeButton("Delete") { _, _ ->
+                deleteDoctor(doctor.id)
+            }
+            .setNeutralButton("Cancel", null)
+            .show()
+    }
+
+    private fun toggleDoctorAvailability(doctorId: String, newAvailable: Boolean) {
+        binding.pbAdminDoctorsLoading.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            val result = doctorRepository.updateDoctorAvailability(doctorId, newAvailable)
+            binding.pbAdminDoctorsLoading.visibility = View.GONE
+
+            result.fold(
+                onSuccess = {
+                    DialogUtils.showSuccess(
+                        this@AdminManageDoctorsActivity,
+                        title = "Availability Updated",
+                        message = "Doctor availability changed to ${if (newAvailable) "Available" else "Unavailable"}."
+                    )
+                    loadDoctors()
+                },
+                onFailure = { error ->
+                    DialogUtils.showError(
+                        this@AdminManageDoctorsActivity,
+                        title = "Update Failed",
+                        message = error.localizedMessage ?: "Could not update doctor availability"
+                    )
+                }
+            )
         }
     }
 

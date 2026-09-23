@@ -130,4 +130,9 @@ class MyAppointmentsActivity : AppCompatActivity() {
             )
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        loadAppointments()
+    }
 }
