@@ -185,9 +185,9 @@ class AuthRepository {
                 profile = fallback
             }
 
-            val effectiveRole = profile.role.lowercase()
+            val effectiveRole = profile.role?.lowercase() ?: "patient"
             if (effectiveRole == "doctor") {
-                ensureDoctorRecordExists(uid, profile.name, emptyMap())
+                ensureDoctorRecordExists(uid, profile.name ?: "User", emptyMap())
             } else if (effectiveRole == "patient") {
                 ensurePatientRecordExists(uid, emptyMap())
             }

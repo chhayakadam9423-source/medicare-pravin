@@ -6,18 +6,18 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Profile(
     @SerialName("id") val id: String = "",
-    @SerialName("name") val name: String? = "User",
+    @SerialName("name") val name: String = "User",
     @SerialName("email") val email: String? = null,
     @SerialName("phone") val phone: String? = null,
-    @SerialName("role") val role: String? = "patient", // 'patient', 'doctor', 'admin'
+    @SerialName("role") val role: String = "patient", // 'patient', 'doctor', 'admin'
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 ) {
     val displayName: String
-        get() = name?.takeIf { it.isNotBlank() } ?: "User"
+        get() = name.takeIf { it.isNotBlank() } ?: "User"
 
     val displayRole: String
-        get() = role?.takeIf { it.isNotBlank() } ?: "patient"
+        get() = role.takeIf { it.isNotBlank() } ?: "patient"
 }
 
 @Serializable
@@ -52,9 +52,11 @@ data class Doctor(
     // Doctor name comes from profiles.name.
     // Doctor phone comes from profiles.phone.
     // Specialization, qualification and experience come from doctors.
+    val name: String?
+        get() = profile?.name?.takeIf { it.isNotBlank() } ?: rawName
+
     val doctorName: String
-        get() = profile?.name?.takeIf { it.isNotBlank() }
-            ?: rawName?.takeIf { it.isNotBlank() }
+        get() = name?.takeIf { it.isNotBlank() }
             ?: "Dr. $specialization"
 
     val doctorPhone: String
